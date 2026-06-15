@@ -67,7 +67,7 @@ export default function LiabilityFormScreen() {
           style={[styles.toggleBtn, type === 'long-term' && styles.toggleActive]}
           onPress={() => setType('long-term')}
         >
-          <Text style={[styles.toggleText, type === 'long-term' && styles.toggleTextActive]}>Long-Term (> 3 yrs)</Text>
+          <Text style={[styles.toggleText, type === 'long-term' && styles.toggleTextActive]}>Long-Term ({'>'} 3 yrs)</Text>
         </TouchableOpacity>
       </View>
 
