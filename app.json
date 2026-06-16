@@ -27,7 +27,17 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Wealth & Expense",
+      "shortName": "W&E",
+      "description": "Personal finance tracker — net worth, credit card cycles, budgets & guidance.",
+      "themeColor": "#0A0E1A",
+      "backgroundColor": "#0A0E1A",
+      "lang": "en",
+      "scope": "/",
+      "startUrl": "/",
+      "display": "standalone",
+      "orientation": "portrait"
     },
     "plugins": [
       "expo-router",
