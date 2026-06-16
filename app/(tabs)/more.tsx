@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
 import { useStore } from '@/lib/store';
-import { PinLock } from '../pin-lock';
+import { PinLock } from '@/components/PinLock';
 
 interface MenuSection {
   title: string;
