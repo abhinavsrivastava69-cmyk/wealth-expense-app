@@ -14,15 +14,27 @@ export default function RootLayout() {
   const { pin, setPin } = useStore();
 
   useEffect(() => {
-    const unsub = useStore.persist.onFinishHydration(() => {
-      const storedPin = useStore.getState().pin;
-      setPhase(storedPin ? 'verify-pin' : 'set-pin');
-    });
-    if (useStore.persist.hasHydrated()) {
+    function proceed() {
       const storedPin = useStore.getState().pin;
       setPhase(storedPin ? 'verify-pin' : 'set-pin');
     }
-    return unsub;
+
+    // Fast path: already hydrated
+    if (useStore.persist.hasHydrated()) {
+      proceed();
+      return;
+    }
+
+    // Wait for hydration callback
+    const unsub = useStore.persist.onFinishHydration(proceed);
+
+    // Fallback: never get stuck longer than 2 seconds
+    const timer = setTimeout(proceed, 2000);
+
+    return () => {
+      unsub();
+      clearTimeout(timer);
+    };
   }, []);
 
   if (phase === 'loading') {
