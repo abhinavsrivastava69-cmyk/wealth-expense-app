@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/lib/store';
 import { Colors } from '@/constants/colors';
@@ -53,18 +53,41 @@ function Chip({
   );
 }
 
+// Adjust a date string by N days
+function shiftDate(iso: string, days: number): string {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function displayDate(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+  const label = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (diff === 0) return `Today · ${label}`;
+  if (diff === -1) return `Yesterday · ${label}`;
+  return label;
+}
+
 export default function ExpenseEntryScreen() {
   const router = useRouter();
   const store = useStore();
   const month = currentMonth();
 
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<string>('groceries');
+  // Support pre-fill via URL params (for iOS Shortcuts integration)
+  const params = useLocalSearchParams<{ amount?: string; note?: string; category?: string }>();
+
+  const [amount, setAmount] = useState(params.amount ?? '');
+  const [category, setCategory] = useState<string>(params.category ?? 'groceries');
   const [card, setCard] = useState<PaymentMethod>('UPI');
   const [paidBy, setPaidBy] = useState<Earner>('Abhinav');
   const [expenseType, setExpenseType] = useState<ExpenseType>('regular');
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(params.note ?? '');
   const [date, setDate] = useState(isoDate());
+  const [dateText, setDateText] = useState(isoDate());
+  const [editingDate, setEditingDate] = useState(false);
   const [sipAssetId, setSipAssetId] = useState<string>('');
 
   const isInvestment = category === 'sip' || category === 'rd';
@@ -224,6 +247,64 @@ export default function ExpenseEntryScreen() {
         </>
       )}
 
+      {/* Date */}
+      <Text style={styles.label}>Date</Text>
+      <View style={styles.dateRow}>
+        <TouchableOpacity style={styles.dateArrow} onPress={() => { const d = shiftDate(date, -1); setDate(d); setDateText(d); }}>
+          <Ionicons name="chevron-back" size={20} color={Colors.primary} />
+        </TouchableOpacity>
+
+        {editingDate ? (
+          <TextInput
+            style={styles.dateInput}
+            value={dateText}
+            onChangeText={setDateText}
+            onBlur={() => {
+              // Validate and apply
+              const parsed = new Date(dateText);
+              if (!isNaN(parsed.getTime())) {
+                const iso = dateText.length === 10 ? dateText : parsed.toISOString().split('T')[0];
+                setDate(iso);
+                setDateText(iso);
+              } else {
+                setDateText(date); // revert
+              }
+              setEditingDate(false);
+            }}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={Colors.textMuted}
+            autoFocus
+            keyboardType="numbers-and-punctuation"
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              const parsed = new Date(dateText);
+              if (!isNaN(parsed.getTime())) {
+                const iso = dateText.length === 10 ? dateText : parsed.toISOString().split('T')[0];
+                setDate(iso);
+                setDateText(iso);
+              } else {
+                setDateText(date);
+              }
+              setEditingDate(false);
+            }}
+          />
+        ) : (
+          <TouchableOpacity style={styles.dateDisplay} onPress={() => { setDateText(date); setEditingDate(true); }}>
+            <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
+            <Text style={styles.dateText}>{displayDate(date)}</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.dateArrow, new Date(date) >= new Date(isoDate()) && styles.dateArrowDisabled]}
+          onPress={() => {
+            if (date < isoDate()) { const d = shiftDate(date, 1); setDate(d); setDateText(d); }
+          }}
+        >
+          <Ionicons name="chevron-forward" size={20} color={date < isoDate() ? Colors.primary : Colors.textMuted} />
+        </TouchableOpacity>
+      </View>
+
       {/* Note */}
       <Text style={styles.label}>Note (optional)</Text>
       <TextInput
@@ -321,6 +402,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     minHeight: 72,
     textAlignVertical: 'top',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: 'hidden',
+  },
+  dateArrow: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateArrowDisabled: { opacity: 0.3 },
+  dateDisplay: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  dateText: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  dateInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary,
   },
   submitBtn: {
     flexDirection: 'row',

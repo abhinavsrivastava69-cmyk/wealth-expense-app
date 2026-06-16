@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/lib/store';
 import { Colors } from '@/constants/colors';
-import { calculateBudgetDeviations, formatINR, formatINRFull, currentMonth, categoryLabel } from '@/lib/calculations';
+import { calculateBudgetDeviations, formatINR, currentMonth, categoryLabel } from '@/lib/calculations';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import type { ExpenseCategory } from '@/lib/types';
 
@@ -45,7 +45,9 @@ export default function BudgetManagerScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <Text style={styles.headerText}>Set monthly spending limits per category. Actuals are tracked against these in real time.</Text>
+      <Text style={styles.headerText}>
+        Tap any budget amount to edit it. Actuals are tracked in real time.
+      </Text>
 
       {monthBudgets.map(b => {
         const dev = deviations.find(d => d.category === b.category);
@@ -53,56 +55,60 @@ export default function BudgetManagerScreen() {
 
         return (
           <View key={b.id} style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.rowHeader}>
-                <Text style={styles.rowCategory}>{categoryLabel(b.category)}</Text>
-                <View style={styles.rowRight}>
-                  {isEditing ? (
-                    <View style={styles.editRow}>
-                      <Text style={styles.rupee}>₹</Text>
-                      <TextInput
-                        style={styles.editInput}
-                        value={editValue}
-                        onChangeText={setEditValue}
-                        keyboardType="numeric"
-                        autoFocus
-                      />
-                      <TouchableOpacity onPress={() => saveEdit(b.id)}>
-                        <Ionicons name="checkmark-circle" size={22} color={Colors.success} />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => setEditingId(null)}>
-                        <Ionicons name="close-circle" size={22} color={Colors.textMuted} />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <>
-                      <Text style={styles.budgetAmt}>{formatINR(b.budgetAmount)}</Text>
-                      <TouchableOpacity onPress={() => startEdit(b.id, b.budgetAmount)}>
-                        <Ionicons name="pencil-outline" size={16} color={Colors.textMuted} />
-                      </TouchableOpacity>
-                    </>
-                  )}
-                </View>
-              </View>
+            {/* Category label row */}
+            <View style={styles.rowHeader}>
+              <Text style={styles.rowCategory}>{categoryLabel(b.category)}</Text>
 
-              {dev && (
-                <>
-                  <ProgressBar percentage={dev.percentage} height={5} />
-                  <View style={styles.devRow}>
-                    <Text style={[
-                      styles.devText,
-                      dev.status === 'exceeded' ? { color: Colors.danger } :
-                      dev.status === 'warning' ? { color: Colors.warning } : { color: Colors.success },
-                    ]}>
-                      {formatINR(dev.actual)} spent ({dev.percentage.toFixed(0)}%)
-                    </Text>
-                    {dev.actual > dev.budget && (
-                      <Text style={styles.overText}>+{formatINR(dev.actual - dev.budget)} over</Text>
-                    )}
-                  </View>
-                </>
+              {isEditing ? (
+                <View style={styles.editRow}>
+                  <Text style={styles.rupee}>₹</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editValue}
+                    onChangeText={setEditValue}
+                    keyboardType="numeric"
+                    autoFocus
+                    selectTextOnFocus
+                    onSubmitEditing={() => saveEdit(b.id)}
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity onPress={() => saveEdit(b.id)} style={styles.iconBtn}>
+                    <Ionicons name="checkmark-circle" size={26} color={Colors.success} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setEditingId(null)} style={styles.iconBtn}>
+                    <Ionicons name="close-circle" size={26} color={Colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.amountBtn}
+                  onPress={() => startEdit(b.id, b.budgetAmount)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.budgetAmt}>₹{b.budgetAmount.toLocaleString('en-IN')}</Text>
+                  <Ionicons name="create-outline" size={15} color={Colors.primary} style={{ marginLeft: 5 }} />
+                </TouchableOpacity>
               )}
             </View>
+
+            {/* Progress bar + actuals */}
+            {dev && (
+              <>
+                <ProgressBar percentage={dev.percentage} height={6} />
+                <View style={styles.devRow}>
+                  <Text style={[
+                    styles.devText,
+                    dev.status === 'exceeded' ? { color: Colors.danger } :
+                    dev.status === 'warning'  ? { color: Colors.warning } : { color: Colors.success },
+                  ]}>
+                    {formatINR(dev.actual)} spent ({dev.percentage.toFixed(0)}%)
+                  </Text>
+                  {dev.actual > dev.budget && (
+                    <Text style={styles.overText}>+{formatINR(dev.actual - dev.budget)} over</Text>
+                  )}
+                </View>
+              </>
+            )}
           </View>
         );
       })}
@@ -138,25 +144,40 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  rowCategory: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  budgetAmt: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
+  rowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  rowCategory: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
+  amountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryDim + '44',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: Colors.primary + '55',
+  },
+  budgetAmt: { fontSize: 16, fontWeight: '800', color: Colors.primary },
   editRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rupee: { fontSize: 16, color: Colors.textSecondary },
+  rupee: { fontSize: 18, color: Colors.textSecondary },
   editInput: {
-    borderBottomWidth: 1.5,
+    borderBottomWidth: 2,
     borderBottomColor: Colors.primary,
     color: Colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '700',
-    minWidth: 60,
+    fontSize: 18,
+    fontWeight: '800',
+    minWidth: 80,
     padding: 2,
   },
-  devRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  iconBtn: { padding: 2 },
+  devRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
   devText: { fontSize: 12, fontWeight: '500' },
   overText: { fontSize: 12, color: Colors.danger, fontWeight: '600' },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', marginTop: 20, marginBottom: 10 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', marginTop: 20, marginBottom: 10 },
   missingWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   missingChip: {
     flexDirection: 'row',
