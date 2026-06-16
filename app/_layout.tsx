@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,22 +9,42 @@ import { PinLock } from '@/components/PinLock';
 
 type Phase = 'loading' | 'set-pin' | 'verify-pin' | 'unlocked';
 
+function readPinFromStorage(): string | null {
+  try {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const raw = window.localStorage.getItem('wealth-expense-storage');
+      if (raw) return JSON.parse(raw)?.state?.pin ?? null;
+    }
+  } catch {}
+  return null;
+}
+
 export default function RootLayout() {
-  const [phase, setPhase] = useState<Phase>('loading');
   const setPin = useStore(s => s.setPin);
 
-  useEffect(() => {
-    function resolve() {
-      const p = useStore.getState().pin;
-      setPhase(p ? 'verify-pin' : 'set-pin');
-    }
+  // On web: read pin synchronously from localStorage before first render
+  const initialPin = Platform.OS === 'web' ? readPinFromStorage() : null;
+  const [phase, setPhase] = useState<Phase>(
+    Platform.OS === 'web'
+      ? (initialPin ? 'verify-pin' : 'set-pin')
+      : 'loading'
+  );
+  const [storedPin] = useState<string | null>(initialPin);
 
-    if (useStore.persist.hasHydrated()) {
-      resolve();
-    } else {
-      const unsub = useStore.persist.onFinishHydration(resolve);
-      const fallback = setTimeout(resolve, 1500);
-      return () => { unsub(); clearTimeout(fallback); };
+  useEffect(() => {
+    // Only needed on native (web resolves immediately above)
+    if (Platform.OS !== 'web') {
+      function resolve() {
+        const p = useStore.getState().pin;
+        setPhase(p ? 'verify-pin' : 'set-pin');
+      }
+      if (useStore.persist.hasHydrated()) {
+        resolve();
+      } else {
+        const unsub = useStore.persist.onFinishHydration(resolve);
+        const fallback = setTimeout(resolve, 1500);
+        return () => { unsub(); clearTimeout(fallback); };
+      }
     }
   }, []);
 
@@ -51,13 +71,13 @@ export default function RootLayout() {
   }
 
   if (phase === 'verify-pin') {
-    const storedPin = useStore.getState().pin ?? '';
+    const pinToVerify = storedPin ?? useStore.getState().pin ?? '';
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar style="light" />
         <PinLock
           mode="verify"
-          storedPin={storedPin}
+          storedPin={pinToVerify}
           onSuccess={() => setPhase('unlocked')}
         />
       </GestureHandlerRootView>
