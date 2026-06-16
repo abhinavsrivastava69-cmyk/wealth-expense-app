@@ -79,7 +79,7 @@ export default function MoreScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.appName}>Wealth & Expense</Text>
-        <Text style={styles.appSub}>by Abhinav · Turtlelabs.io</Text>
+        <Text style={styles.appSub}>Made & owned by Abhinav Srivastava</Text>
       </View>
 
       {MENU.map(section => (
@@ -136,7 +136,7 @@ export default function MoreScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Wealth & Expense v1.0.0</Text>
-        <Text style={styles.footerSub}>Built for Abhinav · Turtlelabs.io</Text>
+        <Text style={styles.footerSub}>© Abhinav Srivastava</Text>
       </View>
 
       <View style={{ height: 24 }} />

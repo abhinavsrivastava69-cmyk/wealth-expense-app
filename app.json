@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "io.turtlelabs.wealthexpense",
+      "bundleIdentifier": "com.abhinavsrivastava.wealthexpense",
       "buildNumber": "1"
     },
     "android": {
@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0E1A"
       },
-      "package": "io.turtlelabs.wealthexpense"
+      "package": "com.abhinavsrivastava.wealthexpense"
     },
     "web": {
       "bundler": "metro",
