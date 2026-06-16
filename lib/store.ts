@@ -91,6 +91,8 @@ export const useStore = create<AppState>()(
       billingCycles: [],
       budgets: [],
       deferredExpenses: [],
+      pin: null,
+      setPin: (pin) => set({ pin }),
 
       // ── Assets ──────────────────────────────────────────────────────────────
       addAsset: (asset) =>

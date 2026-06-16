@@ -1,7 +1,10 @@
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
+import { useStore } from '@/lib/store';
+import { PinLock } from '../pin-lock';
 
 interface MenuSection {
   title: string;
@@ -41,6 +44,36 @@ const MENU: MenuSection[] = [
 
 export default function MoreScreen() {
   const router = useRouter();
+  const { pin, setPin } = useStore();
+  const [changingPin, setChangingPin] = useState(false);
+
+  function handleChangePin() {
+    Alert.alert(
+      pin ? 'Change PIN' : 'Set PIN',
+      pin ? 'This will let you set a new 4-digit PIN.' : 'Protect the app with a 4-digit PIN.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue', onPress: () => setChangingPin(true) },
+      ]
+    );
+  }
+
+  function handleRemovePin() {
+    Alert.alert('Remove PIN', 'Are you sure you want to remove PIN protection?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => setPin(null) },
+    ]);
+  }
+
+  if (changingPin) {
+    return (
+      <PinLock
+        mode="set"
+        onSuccess={() => setChangingPin(false)}
+        onSetPin={(newPin) => { setPin(newPin); setChangingPin(false); }}
+      />
+    );
+  }
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -77,6 +110,29 @@ export default function MoreScreen() {
           </View>
         </View>
       ))}
+
+      {/* Security */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Security</Text>
+        <View style={styles.sectionCard}>
+          <TouchableOpacity style={[styles.menuItem, styles.menuItemBordered]} onPress={handleChangePin}>
+            <View style={[styles.menuIcon, { backgroundColor: Colors.primary + '22' }]}>
+              <Ionicons name="lock-closed-outline" size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.menuLabel}>{pin ? 'Change PIN' : 'Set PIN'}</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+          {pin && (
+            <TouchableOpacity style={styles.menuItem} onPress={handleRemovePin}>
+              <View style={[styles.menuIcon, { backgroundColor: Colors.danger + '22' }]}>
+                <Ionicons name="lock-open-outline" size={20} color={Colors.danger} />
+              </View>
+              <Text style={[styles.menuLabel, { color: Colors.danger }]}>Remove PIN</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Wealth & Expense v1.0.0</Text>

@@ -168,6 +168,10 @@ export interface AppState {
   budgets: Budget[];
   deferredExpenses: DeferredExpense[];
 
+  // PIN security
+  pin: string | null;
+  setPin: (pin: string | null) => void;
+
   // Actions
   addAsset: (asset: Omit<Asset, 'id'>) => void;
   updateAsset: (id: string, updates: Partial<Asset>) => void;
