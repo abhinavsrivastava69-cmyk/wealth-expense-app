@@ -1,6 +1,18 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+// On web, use synchronous localStorage so zustand hydrates instantly.
+// On native, fall back to async AsyncStorage.
+const appStorage =
+  Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage
+    ? {
+        getItem: (name: string) => window.localStorage.getItem(name),
+        setItem: (name: string, value: string) => window.localStorage.setItem(name, value),
+        removeItem: (name: string) => window.localStorage.removeItem(name),
+      }
+    : AsyncStorage;
 import type {
   AppState,
   Asset,
@@ -228,7 +240,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'wealth-expense-storage',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => appStorage),
       onRehydrateStorage: () => (state) => {
         // After hydration: seed sample data if this is a fresh install
         if (state && state.assets.length === 0) {
