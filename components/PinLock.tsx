@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Vibration } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
@@ -16,51 +16,49 @@ export function PinLock({ mode, onSuccess, onSetPin, storedPin }: Props) {
   const [digits, setDigits] = useState<string[]>([]);
   const [confirmDigits, setConfirmDigits] = useState<string[]>([]);
   const [phase, setPhase] = useState<'enter' | 'confirm'>('enter');
-  const [shake, setShake] = useState(false);
   const [error, setError] = useState('');
+  const [dotError, setDotError] = useState(false);
 
   const current = phase === 'confirm' ? confirmDigits : digits;
   const setter = phase === 'confirm' ? setConfirmDigits : setDigits;
 
   useEffect(() => {
-    if (current.length === PIN_LENGTH) {
-      if (mode === 'verify') {
-        if (current.join('') === storedPin) {
+    if (current.length < PIN_LENGTH) return;
+
+    if (mode === 'verify') {
+      if (current.join('') === storedPin) {
+        onSuccess();
+      } else {
+        showError('Incorrect PIN');
+        setTimeout(() => setDigits([]), 500);
+      }
+    } else {
+      if (phase === 'enter') {
+        setTimeout(() => setPhase('confirm'), 300);
+      } else {
+        if (digits.join('') === confirmDigits.join('')) {
+          onSetPin?.(digits.join(''));
           onSuccess();
         } else {
-          triggerError('Incorrect PIN');
-          setDigits([]);
-        }
-      } else {
-        // Set mode
-        if (phase === 'enter') {
-          setTimeout(() => setPhase('confirm'), 200);
-        } else {
-          // Confirm phase
-          if (digits.join('') === confirmDigits.join('')) {
-            onSetPin?.(digits.join(''));
-            onSuccess();
-          } else {
-            triggerError('PINs do not match — try again');
+          showError('PINs do not match — try again');
+          setTimeout(() => {
             setDigits([]);
             setConfirmDigits([]);
             setPhase('enter');
-          }
+          }, 500);
         }
       }
     }
-  }, [current]);
+  }, [current.length]);
 
-  function triggerError(msg: string) {
+  function showError(msg: string) {
     setError(msg);
-    setShake(true);
-    Vibration.vibrate(400);
-    setTimeout(() => setShake(false), 500);
-    setTimeout(() => setError(''), 2000);
+    setDotError(true);
+    setTimeout(() => { setError(''); setDotError(false); }, 2000);
   }
 
   function press(d: string) {
-    if (current.length < PIN_LENGTH) setter(prev => [...prev, d]);
+    setter(prev => prev.length < PIN_LENGTH ? [...prev, d] : prev);
   }
 
   function del() {
@@ -68,143 +66,118 @@ export function PinLock({ mode, onSuccess, onSetPin, storedPin }: Props) {
   }
 
   const title = mode === 'verify'
-    ? 'Enter PIN'
-    : phase === 'enter' ? 'Create PIN' : 'Confirm PIN';
+    ? 'Welcome back'
+    : phase === 'enter' ? 'Set your PIN' : 'Confirm your PIN';
 
   const subtitle = mode === 'verify'
-    ? 'Enter your 4-digit PIN to access the app'
-    : phase === 'enter'
-      ? 'Choose a 4-digit PIN to secure your data'
-      : 'Re-enter the same PIN to confirm';
+    ? 'Enter your 4-digit PIN'
+    : phase === 'enter' ? 'Choose a 4-digit PIN to protect your data'
+      : 'Enter the same PIN again';
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Ionicons name="lock-closed" size={38} color={Colors.primary} />
+    <View style={styles.root}>
+
+      {/* Logo */}
+      <View style={styles.logoWrap}>
+        <Text style={styles.logoSymbol}>₹</Text>
       </View>
+      <Text style={styles.appName}>Wealth & Expense</Text>
+      <Text style={styles.appOwner}>by Abhinav Srivastava</Text>
+
+      <View style={styles.divider} />
 
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
 
-      {/* Dot indicator */}
-      <View style={[styles.dots, shake && styles.shake]}>
+      {/* PIN dots */}
+      <View style={styles.dotsRow}>
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
           <View
             key={i}
             style={[
               styles.dot,
-              current.length > i && styles.dotFilled,
+              current.length > i && (dotError ? styles.dotErr : styles.dotFilled),
             ]}
           />
         ))}
       </View>
-
-      {error ? <Text style={styles.error}>{error}</Text> : <View style={{ height: 22 }} />}
+      <Text style={styles.errorMsg}>{error}</Text>
 
       {/* Numpad */}
       <View style={styles.pad}>
-        {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((key, i) => {
-          if (key === '') return <View key={i} style={styles.padCell} />;
-          return (
-            <TouchableOpacity
-              key={i}
-              style={[styles.padCell, key !== '⌫' && styles.padBtn]}
-              onPress={() => key === '⌫' ? del() : press(key)}
-              activeOpacity={0.6}
-            >
-              {key === '⌫' ? (
-                <Ionicons name="backspace-outline" size={26} color={Colors.textSecondary} />
-              ) : (
-                <Text style={styles.padText}>{key}</Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+        {['1','2','3','4','5','6','7','8','9'].map(n => (
+          <Pressable key={n} onPress={() => press(n)}
+            style={({ pressed }) => [styles.numBtn, pressed && styles.numBtnActive]}>
+            <Text style={styles.numText}>{n}</Text>
+          </Pressable>
+        ))}
+        {/* Bottom row */}
+        <View style={styles.numBtn} />
+        <Pressable onPress={() => press('0')}
+          style={({ pressed }) => [styles.numBtn, pressed && styles.numBtnActive]}>
+          <Text style={styles.numText}>0</Text>
+        </Pressable>
+        <Pressable onPress={del}
+          style={({ pressed }) => [styles.numBtn, pressed && styles.numBtnActive]}>
+          <Ionicons name="backspace-outline" size={24} color={Colors.textSecondary} />
+        </Pressable>
       </View>
+
+      {mode === 'set' && (
+        <Pressable onPress={() => { onSetPin?.(''); onSuccess(); }} style={styles.skipBtn}>
+          <Text style={styles.skipText}>Skip for now</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
+    padding: 24,
   },
-  iconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+  logoWrap: {
+    width: 80, height: 80, borderRadius: 24,
     backgroundColor: Colors.primaryDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 28,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: Colors.primary + '60',
+    marginBottom: 14,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 40,
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: 20,
-    marginBottom: 12,
-  },
-  shake: {
-    // React Native doesn't support CSS animations — we toggle opacity instead
-    opacity: 0.5,
-  },
+  logoSymbol: { fontSize: 40, color: Colors.primary, fontWeight: '800' },
+  appName: { fontSize: 20, fontWeight: '800', color: Colors.textPrimary },
+  appOwner: { fontSize: 12, color: Colors.textMuted, marginTop: 3, marginBottom: 28 },
+  divider: { width: 40, height: 2, backgroundColor: Colors.border, borderRadius: 2, marginBottom: 28 },
+  title: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
+  subtitle: { fontSize: 13, color: Colors.textSecondary, marginBottom: 28, textAlign: 'center' },
+  dotsRow: { flexDirection: 'row', gap: 18, marginBottom: 10 },
   dot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: Colors.primary,
+    width: 18, height: 18, borderRadius: 9,
+    borderWidth: 2, borderColor: Colors.borderLight,
     backgroundColor: 'transparent',
   },
-  dotFilled: {
-    backgroundColor: Colors.primary,
-  },
-  error: {
-    fontSize: 13,
-    color: Colors.danger,
-    fontWeight: '600',
-    height: 22,
-    textAlign: 'center',
-  },
+  dotFilled: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  dotErr: { backgroundColor: Colors.danger, borderColor: Colors.danger },
+  errorMsg: { height: 18, fontSize: 13, color: Colors.danger, fontWeight: '600', marginBottom: 22 },
   pad: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: 300,
-    marginTop: 24,
     gap: 16,
+    width: 276,
     justifyContent: 'center',
   },
-  padCell: {
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  padBtn: {
-    backgroundColor: Colors.surface,
+  numBtn: {
+    width: 80, height: 80,
     borderRadius: 40,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
+    alignItems: 'center', justifyContent: 'center',
   },
-  padText: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
+  numBtnActive: { backgroundColor: Colors.primaryDim, borderColor: Colors.primary },
+  numText: { fontSize: 26, fontWeight: '400', color: Colors.textPrimary },
+  skipBtn: { marginTop: 28 },
+  skipText: { fontSize: 13, color: Colors.textMuted, textDecorationLine: 'underline' },
 });
