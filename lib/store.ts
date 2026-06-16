@@ -227,6 +227,12 @@ export const useStore = create<AppState>()(
     {
       name: 'wealth-expense-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        // After hydration: seed sample data if this is a fresh install
+        if (state && state.assets.length === 0) {
+          state.seedInitialData();
+        }
+      },
     }
   )
 );
