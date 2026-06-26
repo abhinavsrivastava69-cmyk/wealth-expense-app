@@ -13,9 +13,9 @@ const SEVERITY: Record<Insight['severity'], { color: string; icon: React.Compone
 };
 
 export default function InsightsScreen() {
-  const { incomes, expenses, liabilities, billingCycles, cards, settings } = useStore();
+  const { incomes, expenses, liabilities, billingCycles, cards, budgets, settings } = useStore();
   const month = currentMonth();
-  const insights = generateInsights({ month, incomes, expenses, liabilities, billingCycles, cards, settings });
+  const insights = generateInsights({ month, incomes, expenses, liabilities, billingCycles, cards, budgets, settings });
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>

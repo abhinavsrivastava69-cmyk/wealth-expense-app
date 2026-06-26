@@ -239,6 +239,8 @@ export const useStore = create<AppState>()(
         set(s => ({
           budgets: s.budgets.map(b => (b.id === id ? { ...b, ...updates } : b)),
         })),
+      deleteBudget: (id) =>
+        set(s => ({ budgets: s.budgets.filter(b => b.id !== id) })),
 
       // ── Billing Cycles ───────────────────────────────────────────────────────
       updateBillingCycle: (id, updates) =>
@@ -296,13 +298,18 @@ export const useStore = create<AppState>()(
         ];
 
         const budgets: Budget[] = [
-          { id: uid(), category: 'groceries', month, budgetAmount: 15000 },
-          { id: uid(), category: 'dining', month, budgetAmount: 8000 },
-          { id: uid(), category: 'shopping', month, budgetAmount: 12000 },
-          { id: uid(), category: 'entertainment', month, budgetAmount: 5000 },
-          { id: uid(), category: 'travel', month, budgetAmount: 10000 },
-          { id: uid(), category: 'medical', month, budgetAmount: 3000 },
-          { id: uid(), category: 'other', month, budgetAmount: 5000 },
+          // Fixed monthly commitments
+          { id: uid(), category: 'fixed', month, budgetAmount: 33000, kind: 'fixed', label: 'Home Loan EMI' },
+          { id: uid(), category: 'fixed', month, budgetAmount: 20000, kind: 'fixed', label: 'Equity SIP' },
+          { id: uid(), category: 'fixed', month, budgetAmount: 18000, kind: 'fixed', label: 'Rent' },
+          // Variable category budgets
+          { id: uid(), category: 'groceries', month, budgetAmount: 15000, kind: 'variable' },
+          { id: uid(), category: 'dining', month, budgetAmount: 8000, kind: 'variable' },
+          { id: uid(), category: 'shopping', month, budgetAmount: 12000, kind: 'variable' },
+          { id: uid(), category: 'entertainment', month, budgetAmount: 5000, kind: 'variable' },
+          { id: uid(), category: 'travel', month, budgetAmount: 10000, kind: 'variable' },
+          { id: uid(), category: 'medical', month, budgetAmount: 3000, kind: 'variable' },
+          { id: uid(), category: 'other', month, budgetAmount: 5000, kind: 'variable' },
         ];
 
         set({ assets, liabilities, incomes, expenses: [], cards, billingCycles: cycles, budgets, deferredExpenses: [] });

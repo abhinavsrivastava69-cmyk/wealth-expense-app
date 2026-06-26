@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/lib/store';
 import { Colors } from '@/constants/colors';
-import { calculateBudgetDeviations, formatINR, currentMonth, categoryLabel } from '@/lib/calculations';
+import { calculateBudgetDeviations, formatINR, formatINRFull, currentMonth, categoryLabel } from '@/lib/calculations';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import type { ExpenseCategory } from '@/lib/types';
 
@@ -11,18 +11,33 @@ const DEFAULT_CATEGORIES: ExpenseCategory[] = [
   'groceries','dining','shopping','entertainment','travel','medical','other',
 ];
 
+const FIXED_PRESETS = ['EMI', 'SIP', 'Rent', 'Insurance'];
+
 export default function BudgetManagerScreen() {
-  const { budgets, addBudget, updateBudget, expenses } = useStore();
+  const { budgets, addBudget, updateBudget, deleteBudget, expenses, incomes } = useStore();
   const month = currentMonth();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const monthBudgets = budgets.filter(b => b.month === month);
-  const deviations = calculateBudgetDeviations(month, expenses, budgets);
+  // Fixed-commitment add form
+  const [addingFixed, setAddingFixed] = useState(false);
+  const [fixedLabel, setFixedLabel] = useState('');
+  const [fixedAmount, setFixedAmount] = useState('');
 
-  const existingCategories = monthBudgets.map(b => b.category);
+  const monthBudgets = budgets.filter(b => b.month === month);
+  const fixedBudgets = monthBudgets.filter(b => b.kind === 'fixed');
+  const variableBudgets = monthBudgets.filter(b => b.kind !== 'fixed');
+  const deviations = calculateBudgetDeviations(month, expenses, variableBudgets);
+
+  const existingCategories = variableBudgets.map(b => b.category);
   const missingCategories = DEFAULT_CATEGORIES.filter(c => !existingCategories.includes(c));
+
+  const totalFixed = fixedBudgets.reduce((s, b) => s + b.budgetAmount, 0);
+  const totalVariableBudget = variableBudgets.reduce((s, b) => s + b.budgetAmount, 0);
+  const income = incomes.filter(i => i.month === month).reduce((s, i) => s + i.amount, 0);
+  const afterFixed = income - totalFixed;
+  const fixedCovered = income > 0 && afterFixed >= 0;
 
   function startEdit(id: string, current: number) {
     setEditingId(id);
@@ -40,22 +55,159 @@ export default function BudgetManagerScreen() {
   }
 
   function addMissing(category: ExpenseCategory) {
-    addBudget({ category, month, budgetAmount: 5000 });
+    addBudget({ category, month, budgetAmount: 5000, kind: 'variable' });
+  }
+
+  function startFixed(preset?: string) {
+    setAddingFixed(true);
+    setFixedLabel(preset ?? '');
+    setFixedAmount('');
+  }
+
+  function saveFixed() {
+    const val = parseFloat(fixedAmount);
+    const label = fixedLabel.trim();
+    if (!label) { Alert.alert('Enter a name', 'e.g. EMI, SIP, Rent'); return; }
+    if (isNaN(val) || val <= 0) { Alert.alert('Enter a valid amount'); return; }
+    addBudget({ category: 'fixed', month, budgetAmount: val, kind: 'fixed', label });
+    setAddingFixed(false);
+    setFixedLabel('');
+    setFixedAmount('');
+  }
+
+  function removeFixed(id: string, label: string) {
+    Alert.alert('Remove Commitment', `Remove "${label}" from fixed planning?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => deleteBudget(id) },
+    ]);
   }
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <Text style={styles.headerText}>
-        Tap any budget amount to edit it. Actuals are tracked in real time.
-      </Text>
+      {/* Coverage summary */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Income</Text>
+          <Text style={styles.summaryValue}>{formatINRFull(income)}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Fixed commitments</Text>
+          <Text style={[styles.summaryValue, { color: Colors.warning }]}>−{formatINRFull(totalFixed)}</Text>
+        </View>
+        <View style={[styles.summaryRow, styles.summaryDivider]}>
+          <Text style={styles.summaryLabelStrong}>Left for variable</Text>
+          <Text style={[styles.summaryValueStrong, { color: afterFixed >= 0 ? Colors.success : Colors.danger }]}>
+            {formatINRFull(afterFixed)}
+          </Text>
+        </View>
+        {income > 0 && (
+          <Text style={styles.coverageNote}>
+            {fixedCovered
+              ? `Fixed commitments covered. You've planned ${formatINR(totalVariableBudget)} of ${formatINR(afterFixed)} variable budget.`
+              : `Fixed commitments exceed income by ${formatINR(-afterFixed)}. Trim a commitment or add income.`}
+          </Text>
+        )}
+      </View>
 
-      {monthBudgets.map(b => {
+      {/* ── Fixed Commitments ─────────────────────────────────────────────── */}
+      <Text style={styles.sectionTitle}>Fixed Commitments</Text>
+      <Text style={styles.sectionHint}>EMI, SIP, rent, insurance — recurring obligations planned before discretionary spend.</Text>
+
+      {fixedBudgets.length === 0 && (
+        <Text style={styles.empty}>No fixed commitments yet. Add EMI, SIP or rent below.</Text>
+      )}
+      {fixedBudgets.map(b => {
+        const isEditing = editingId === b.id;
+        return (
+          <View key={b.id} style={styles.fixedRow}>
+            <View style={[styles.dot, { backgroundColor: Colors.warning }]} />
+            <Text style={styles.fixedLabel}>{b.label ?? 'Commitment'}</Text>
+            {isEditing ? (
+              <View style={styles.editRow}>
+                <Text style={styles.rupee}>₹</Text>
+                <TextInput
+                  style={styles.editInput}
+                  value={editValue}
+                  onChangeText={setEditValue}
+                  keyboardType="numeric"
+                  autoFocus
+                  selectTextOnFocus
+                  onSubmitEditing={() => saveEdit(b.id)}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity onPress={() => saveEdit(b.id)} style={styles.iconBtn}>
+                  <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setEditingId(null)} style={styles.iconBtn}>
+                  <Ionicons name="close-circle" size={24} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity style={styles.fixedAmtBtn} onPress={() => startEdit(b.id, b.budgetAmount)} activeOpacity={0.6}>
+                  <Text style={styles.fixedAmt}>₹{b.budgetAmount.toLocaleString('en-IN')}</Text>
+                  <Ionicons name="create-outline" size={14} color={Colors.primary} style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => removeFixed(b.id, b.label ?? 'Commitment')} hitSlop={10} style={{ marginLeft: 10 }}>
+                  <Ionicons name="trash-outline" size={18} color={Colors.danger} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        );
+      })}
+
+      {addingFixed ? (
+        <View style={styles.fixedForm}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Home Loan EMI"
+            placeholderTextColor={Colors.textMuted}
+            value={fixedLabel}
+            onChangeText={setFixedLabel}
+          />
+          <Text style={styles.label}>Amount (₹)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="0"
+            placeholderTextColor={Colors.textMuted}
+            keyboardType="numeric"
+            value={fixedAmount}
+            onChangeText={setFixedAmount}
+          />
+          <TouchableOpacity style={styles.saveBtn} onPress={saveFixed}>
+            <Text style={styles.saveBtnText}>Add Commitment</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => setAddingFixed(false)}>
+            <Text style={styles.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.missingWrap}>
+          {FIXED_PRESETS.map(p => (
+            <TouchableOpacity key={p} style={styles.missingChip} onPress={() => startFixed(p)}>
+              <Ionicons name="add" size={14} color={Colors.primary} />
+              <Text style={styles.missingText}>{p}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={styles.missingChip} onPress={() => startFixed()}>
+            <Ionicons name="add" size={14} color={Colors.primary} />
+            <Text style={styles.missingText}>Custom</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── Variable Budgets ──────────────────────────────────────────────── */}
+      <Text style={[styles.sectionTitle, { marginTop: 28 }]}>Variable Budgets</Text>
+      <Text style={styles.sectionHint}>Tap any amount to edit. Actuals are tracked in real time against logged expenses.</Text>
+
+      {variableBudgets.map(b => {
         const dev = deviations.find(d => d.category === b.category);
         const isEditing = editingId === b.id;
 
         return (
           <View key={b.id} style={styles.row}>
-            {/* Category label row */}
             <View style={styles.rowHeader}>
               <Text style={styles.rowCategory}>{categoryLabel(b.category)}</Text>
 
@@ -80,18 +232,22 @@ export default function BudgetManagerScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.amountBtn}
-                  onPress={() => startEdit(b.id, b.budgetAmount)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={styles.budgetAmt}>₹{b.budgetAmount.toLocaleString('en-IN')}</Text>
-                  <Ionicons name="create-outline" size={15} color={Colors.primary} style={{ marginLeft: 5 }} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity
+                    style={styles.amountBtn}
+                    onPress={() => startEdit(b.id, b.budgetAmount)}
+                    activeOpacity={0.6}
+                  >
+                    <Text style={styles.budgetAmt}>₹{b.budgetAmount.toLocaleString('en-IN')}</Text>
+                    <Ionicons name="create-outline" size={15} color={Colors.primary} style={{ marginLeft: 5 }} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => deleteBudget(b.id)} hitSlop={8} style={{ marginLeft: 10 }}>
+                    <Ionicons name="trash-outline" size={17} color={Colors.danger} />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
 
-            {/* Progress bar + actuals */}
             {dev && (
               <>
                 <ProgressBar percentage={dev.percentage} height={6} />
@@ -115,7 +271,7 @@ export default function BudgetManagerScreen() {
 
       {missingCategories.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Add Budget for Category</Text>
+          <Text style={styles.sectionTitle}>Add Category Budget</Text>
           <View style={styles.missingWrap}>
             {missingCategories.map(c => (
               <TouchableOpacity key={c} style={styles.missingChip} onPress={() => addMissing(c)}>
@@ -135,7 +291,46 @@ export default function BudgetManagerScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.background },
   content: { padding: 16 },
-  headerText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19, marginBottom: 20 },
+  summaryCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 16,
+    marginBottom: 20,
+  },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  summaryDivider: { borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10, marginTop: 2, marginBottom: 4 },
+  summaryLabel: { fontSize: 13, color: Colors.textSecondary },
+  summaryValue: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  summaryLabelStrong: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
+  summaryValueStrong: { fontSize: 16, fontWeight: '800' },
+  coverageNote: { fontSize: 12, color: Colors.textSecondary, lineHeight: 18, marginTop: 6 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  sectionHint: { fontSize: 12, color: Colors.textSecondary, lineHeight: 17, marginBottom: 14 },
+  empty: { color: Colors.textSecondary, fontSize: 13, marginBottom: 10 },
+  fixedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+  },
+  dot: { width: 9, height: 9, borderRadius: 5, marginRight: 10 },
+  fixedLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  fixedAmtBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
+  fixedAmt: { fontSize: 15, fontWeight: '800', color: Colors.primary },
+  fixedForm: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 14, padding: 16, marginTop: 4 },
+  label: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 12 },
+  input: { backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 14, color: Colors.textPrimary, fontSize: 15 },
+  saveBtn: { backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 20 },
+  saveBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  cancelBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 2 },
+  cancelBtnText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600' },
   row: {
     backgroundColor: Colors.surface,
     borderRadius: 14,
@@ -177,7 +372,6 @@ const styles = StyleSheet.create({
   devRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
   devText: { fontSize: 12, fontWeight: '500' },
   overText: { fontSize: 12, color: Colors.danger, fontWeight: '600' },
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', marginTop: 20, marginBottom: 10 },
   missingWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   missingChip: {
     flexDirection: 'row',

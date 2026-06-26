@@ -4,6 +4,7 @@ import type {
   Liability,
   BillingCycle,
   Card,
+  Budget,
   AppSettings,
   ExpenseCategory,
 } from './types';
@@ -93,11 +94,49 @@ export function generateInsights(args: {
   liabilities: Liability[];
   billingCycles: BillingCycle[];
   cards: Card[];
+  budgets: Budget[];
   settings: AppSettings;
 }): Insight[] {
-  const { month, incomes, expenses, liabilities, billingCycles, cards, settings } = args;
+  const { month, incomes, expenses, liabilities, billingCycles, cards, budgets, settings } = args;
   const insights: Insight[] = [];
   const prevMonths = recentMonths(month, 3);
+
+  // ── Fixed commitments coverage ──────────────────────────────────────────────
+  const income = monthIncome(incomes, month);
+  const fixedBudgets = budgets.filter(b => b.month === month && b.kind === 'fixed');
+  // Prefer planned fixed commitments; fall back to liability EMIs if none planned.
+  const totalFixed = fixedBudgets.length > 0
+    ? fixedBudgets.reduce((s, b) => s + b.budgetAmount, 0)
+    : liabilities.reduce((s, l) => s + l.emiAmount, 0);
+  if (income > 0 && totalFixed > 0) {
+    const afterFixed = income - totalFixed;
+    const variableSpent = totalVariable(expenses, month);
+    if (afterFixed < 0) {
+      insights.push({
+        id: 'fixed-over',
+        title: 'Fixed commitments exceed income',
+        detail: `EMI/SIP/rent total ${formatINR(totalFixed)} vs ${formatINR(income)} income. Restructure a commitment — there's nothing left for variable spend.`,
+        severity: 'danger',
+      });
+    } else {
+      const usedPct = afterFixed > 0 ? (variableSpent / afterFixed) * 100 : 0;
+      if (usedPct >= 90) {
+        insights.push({
+          id: 'fixed-tight',
+          title: 'Variable spend eating into buffer',
+          detail: `Fixed commitments (${formatINR(totalFixed)}) are covered, but you've used ${usedPct.toFixed(0)}% of the ${formatINR(afterFixed)} left. Ease off discretionary categories.`,
+          severity: usedPct >= 100 ? 'danger' : 'warning',
+        });
+      } else {
+        insights.push({
+          id: 'fixed-covered',
+          title: 'Fixed commitments fully covered',
+          detail: `${formatINR(totalFixed)} of EMI/SIP/rent met from income — ${formatINR(afterFixed - variableSpent)} of your ${formatINR(afterFixed)} variable headroom still free. Keep discretionary spend lean to bank it.`,
+          severity: 'good',
+        });
+      }
+    }
+  }
 
   // ── Category trend vs trailing 3-month average ──────────────────────────────
   const current = sumByCategory(expenses, month);

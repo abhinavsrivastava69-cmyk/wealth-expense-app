@@ -106,11 +106,15 @@ export interface Expense {
   month: string; // "YYYY-MM"
 }
 
+export type BudgetKind = 'fixed' | 'variable';
+
 export interface Budget {
   id: string;
   category: ExpenseCategory;
   month: string; // "YYYY-MM"
   budgetAmount: number;
+  kind?: BudgetKind; // undefined treated as 'variable' (back-compat)
+  label?: string;    // name for fixed commitments e.g. "EMI", "SIP", "Rent"
 }
 
 export interface DeferredExpense {
@@ -207,6 +211,7 @@ export interface AppState {
 
   addBudget: (budget: Omit<Budget, 'id'>) => void;
   updateBudget: (id: string, updates: Partial<Budget>) => void;
+  deleteBudget: (id: string) => void;
 
   updateBillingCycle: (id: string, updates: Partial<BillingCycle>) => void;
   resolveCyclePayment: (
