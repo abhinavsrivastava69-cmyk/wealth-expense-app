@@ -14,10 +14,11 @@ const TYPES: { value: IncomeType; label: string; color: string }[] = [
 ];
 
 export default function IncomeManagerScreen() {
-  const { incomes, addIncome, deleteIncome } = useStore();
+  const { incomes, addIncome, updateIncome, deleteIncome } = useStore();
   const month = currentMonth();
 
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [earner, setEarner] = useState<Earner>('Abhinav');
   const [type, setType] = useState<IncomeType>('salary');
   const [amount, setAmount] = useState('');
@@ -25,21 +26,38 @@ export default function IncomeManagerScreen() {
 
   const monthIncomes = incomes.filter(i => i.month === month);
   const total = monthIncomes.reduce((s, i) => s + i.amount, 0);
+  const formOpen = adding || editingId !== null;
 
   function reset() {
-    setEarner('Abhinav'); setType('salary'); setAmount(''); setLabel(''); setAdding(false);
+    setEarner('Abhinav'); setType('salary'); setAmount(''); setLabel('');
+    setAdding(false); setEditingId(null);
   }
 
-  function handleAdd() {
+  function startEdit(inc: typeof monthIncomes[number]) {
+    setEditingId(inc.id);
+    setAdding(false);
+    setEarner(inc.earner);
+    setType(inc.type);
+    setAmount(String(inc.amount));
+    setLabel(inc.label ?? '');
+  }
+
+  function handleSave() {
     const val = parseFloat(amount);
     if (isNaN(val) || val <= 0) { Alert.alert('Enter a valid amount'); return; }
-    addIncome({
+    const data = {
       earner,
       month,
       amount: val,
       type,
       ...(type === 'credit' && label.trim() ? { label: label.trim() } : {}),
-    });
+    };
+    if (editingId) {
+      // Clear label when type is no longer credit
+      updateIncome(editingId, { ...data, label: type === 'credit' && label.trim() ? label.trim() : undefined });
+    } else {
+      addIncome(data);
+    }
     reset();
   }
 
@@ -65,28 +83,38 @@ export default function IncomeManagerScreen() {
       {monthIncomes.length === 0 && <Text style={styles.empty}>No income recorded this month.</Text>}
       {monthIncomes.map(inc => {
         const m = typeMeta(inc.type);
+        const active = editingId === inc.id;
         return (
-          <View key={inc.id} style={styles.row}>
+          <TouchableOpacity
+            key={inc.id}
+            activeOpacity={0.7}
+            onPress={() => startEdit(inc)}
+            style={[styles.row, active && styles.rowEditing]}
+          >
             <View style={[styles.dot, { backgroundColor: m.color }]} />
             <View style={{ flex: 1 }}>
               <Text style={styles.rowTitle}>{inc.label ?? m.label} · {inc.earner}</Text>
               <Text style={styles.rowMeta}>{m.label}</Text>
             </View>
             <Text style={styles.rowAmount}>{formatINRFull(inc.amount)}</Text>
-            <TouchableOpacity onPress={() => handleDelete(inc.id)} hitSlop={10} style={{ marginLeft: 10 }}>
+            <TouchableOpacity onPress={() => startEdit(inc)} hitSlop={10} style={{ marginLeft: 10 }}>
+              <Ionicons name="pencil-outline" size={17} color={Colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleDelete(inc.id)} hitSlop={10} style={{ marginLeft: 12 }}>
               <Ionicons name="trash-outline" size={18} color={Colors.danger} />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         );
       })}
 
-      {!adding ? (
+      {!formOpen ? (
         <TouchableOpacity style={styles.addBtn} onPress={() => setAdding(true)}>
           <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
           <Text style={styles.addBtnText}>Add Income / Credit</Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.form}>
+          <Text style={styles.formTitle}>{editingId ? 'Edit Entry' : 'New Entry'}</Text>
           <Text style={styles.label}>Type</Text>
           <View style={styles.typeRow}>
             {TYPES.map(t => (
@@ -115,8 +143,8 @@ export default function IncomeManagerScreen() {
           <Text style={styles.label}>Amount (₹)</Text>
           <TextInput style={styles.input} placeholder="0" placeholderTextColor={Colors.textMuted} keyboardType="numeric" value={amount} onChangeText={setAmount} />
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleAdd}>
-            <Text style={styles.saveBtnText}>Save</Text>
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+            <Text style={styles.saveBtnText}>{editingId ? 'Update' : 'Save'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelBtn} onPress={reset}>
             <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -137,6 +165,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
   empty: { color: Colors.textSecondary, fontSize: 14, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 14, marginBottom: 10 },
+  rowEditing: { borderColor: Colors.primary },
   dot: { width: 10, height: 10, borderRadius: 5 },
   rowTitle: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
   rowMeta: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
@@ -144,6 +173,7 @@ const styles = StyleSheet.create({
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, marginTop: 8 },
   addBtnText: { fontSize: 15, color: Colors.primary, fontWeight: '600' },
   form: { marginTop: 12, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 14, padding: 16 },
+  formTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
   label: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 14 },
   input: { backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border, borderRadius: 12, padding: 14, color: Colors.textPrimary, fontSize: 15 },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
