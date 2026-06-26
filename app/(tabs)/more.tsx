@@ -21,10 +21,17 @@ interface MenuItem {
 
 const MENU: MenuSection[] = [
   {
+    title: 'Smart Engine',
+    items: [
+      { label: 'Spending Insights', icon: 'sparkles-outline', route: '/insights', color: Colors.accent },
+    ],
+  },
+  {
     title: 'Wealth',
     items: [
       { label: 'Asset Manager', icon: 'bar-chart-outline', route: '/asset-form', color: Colors.success },
       { label: 'Liability Manager', icon: 'trending-down-outline', route: '/liability-form', color: Colors.danger },
+      { label: 'Income & Credits', icon: 'cash-outline', route: '/income-manager', color: Colors.success },
     ],
   },
   {
@@ -32,11 +39,13 @@ const MENU: MenuSection[] = [
     items: [
       { label: 'Budget Manager', icon: 'pie-chart-outline', route: '/budget-manager', color: Colors.primary },
       { label: 'Bonus Month Planner', icon: 'calendar-outline', route: '/bonus-planner', color: Colors.accent },
+      { label: 'Bonus Cycle Settings', icon: 'sync-outline', route: '/bonus-settings', color: Colors.accent },
     ],
   },
   {
     title: 'Credit Cards',
     items: [
+      { label: 'Manage Cards', icon: 'card-outline', route: '/cards-manager', color: Colors.primary },
       { label: 'Bill Resolution', icon: 'checkmark-circle-outline', route: '/rollover', color: Colors.warning },
     ],
   },

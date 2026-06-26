@@ -29,7 +29,7 @@ export interface Liability {
 }
 
 export type Earner = 'Abhinav' | 'Manasvi';
-export type IncomeType = 'salary' | 'bonus';
+export type IncomeType = 'salary' | 'bonus' | 'credit';
 
 export interface Income {
   id: string;
@@ -38,9 +38,10 @@ export interface Income {
   amount: number;
   type: IncomeType;
   isBonusMonth?: boolean;
+  label?: string; // for credits e.g. "Gift money", "Freelance"
 }
 
-export type CardName = 'ICICI' | 'HDFC' | 'Scapia' | 'SBI' | 'IDFC';
+export type CardName = string;
 export type PaymentMethod = CardName | 'UPI' | 'Cash';
 
 export interface Card {
@@ -50,6 +51,12 @@ export interface Card {
   cutDate: number;   // day of month
   billDate: number;  // day of month
   color: string;
+}
+
+// Configurable bonus payout cycle. The quarterly bonus for a quarter is paid
+// `payoutOffsetMonths` after the quarter ends (e.g. AMJ quarter → Jul = offset 1).
+export interface AppSettings {
+  bonusPayoutOffsetMonths: number;
 }
 
 export type CycleStatus = 'open' | 'locked' | 'paid' | 'rolled';
@@ -167,10 +174,19 @@ export interface AppState {
   billingCycles: BillingCycle[];
   budgets: Budget[];
   deferredExpenses: DeferredExpense[];
+  settings: AppSettings;
 
   // PIN security
   pin: string | null;
   setPin: (pin: string | null) => void;
+
+  // Settings
+  updateSettings: (updates: Partial<AppSettings>) => void;
+
+  // Cards
+  addCard: (card: Omit<Card, 'id'>) => void;
+  updateCard: (id: string, updates: Partial<Card>) => void;
+  deleteCard: (id: string) => void;
 
   // Actions
   addAsset: (asset: Omit<Asset, 'id'>) => void;
@@ -183,6 +199,7 @@ export interface AppState {
 
   addIncome: (income: Omit<Income, 'id'>) => void;
   updateIncome: (id: string, updates: Partial<Income>) => void;
+  deleteIncome: (id: string) => void;
 
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   updateExpense: (id: string, updates: Partial<Expense>) => void;

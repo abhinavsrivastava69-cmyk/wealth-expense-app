@@ -65,7 +65,7 @@ export default function CardsScreen() {
           .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())[1];
 
         const badge = cycleBadge(currentCycle);
-        const color = cardColor(card.name);
+        const color = card.color ?? cardColor(card.name);
 
         const cardExpenses = expenses.filter(
           e => e.cardId === card.name && currentCycle && e.cycleId === currentCycle.id
@@ -151,7 +151,7 @@ export default function CardsScreen() {
         <View style={{ height: 10 }} />
         {cards.map(card => (
           <View key={card.id} style={styles.cycleRefRow}>
-            <View style={[styles.dot, { backgroundColor: cardColor(card.name) }]} />
+            <View style={[styles.dot, { backgroundColor: card.color ?? cardColor(card.name) }]} />
             <Text style={styles.cycleRefName}>{card.name}</Text>
             <Text style={styles.cycleRefText}>Cut: {card.cutDate}th · Due: {card.billDate}th</Text>
           </View>

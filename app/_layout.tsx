@@ -89,7 +89,11 @@ export default function RootLayout() {
         <Stack.Screen name="liability-form" options={{ title: 'Manage Liability', presentation: 'modal' }} />
         <Stack.Screen name="rollover" options={{ title: 'Bill Resolution', presentation: 'modal' }} />
         <Stack.Screen name="bonus-planner" options={{ title: 'Bonus Month Planner' }} />
+        <Stack.Screen name="bonus-settings" options={{ title: 'Bonus Cycle Settings' }} />
         <Stack.Screen name="budget-manager" options={{ title: 'Budget Manager' }} />
+        <Stack.Screen name="cards-manager" options={{ title: 'Manage Cards', presentation: 'modal' }} />
+        <Stack.Screen name="income-manager" options={{ title: 'Income & Credits', presentation: 'modal' }} />
+        <Stack.Screen name="insights" options={{ title: 'Spending Insights' }} />
       </Stack>
     </GestureHandlerRootView>
   );

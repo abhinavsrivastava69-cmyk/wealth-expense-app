@@ -15,12 +15,14 @@ const appStorage =
     : AsyncStorage;
 import type {
   AppState,
+  AppSettings,
   Asset,
   Liability,
   Income,
   Expense,
   Budget,
   BillingCycle,
+  Card,
   DeferredExpense,
   PaymentResolution,
 } from './types';
@@ -42,6 +44,51 @@ function seedCards() {
       color: cfg.color,
     })
   );
+}
+
+function makeCardCycles(card: { id: string; cutDate: number; billDate: number }): BillingCycle[] {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const cycles: BillingCycle[] = [];
+
+  const cutDateThisMonth = new Date(year, month, card.cutDate);
+  const billDateThisMonth = new Date(
+    year,
+    card.billDate < card.cutDate ? month + 1 : month,
+    card.billDate
+  );
+  const prevMonth = new Date(year, month - 1, card.cutDate);
+
+  cycles.push({
+    id: uid(),
+    cardId: card.id,
+    startDate: isoDate(prevMonth),
+    endDate: isoDate(cutDateThisMonth),
+    billDueDate: isoDate(billDateThisMonth),
+    totalSpend: 0,
+    status: now > cutDateThisMonth ? 'locked' : 'open',
+    paymentResolution: 'pending',
+  });
+
+  const nextCutDate = new Date(year, month + 1, card.cutDate);
+  const nextBillDate = new Date(
+    year,
+    card.billDate < card.cutDate ? month + 2 : month + 1,
+    card.billDate
+  );
+  cycles.push({
+    id: uid(),
+    cardId: card.id,
+    startDate: isoDate(cutDateThisMonth),
+    endDate: isoDate(nextCutDate),
+    billDueDate: isoDate(nextBillDate),
+    totalSpend: 0,
+    status: 'open',
+    paymentResolution: 'pending',
+  });
+
+  return cycles;
 }
 
 function seedBillingCycles(cards: ReturnType<typeof seedCards>): BillingCycle[] {
@@ -103,8 +150,29 @@ export const useStore = create<AppState>()(
       billingCycles: [],
       budgets: [],
       deferredExpenses: [],
+      settings: { bonusPayoutOffsetMonths: 1 },
       pin: null,
       setPin: (pin) => set({ pin }),
+
+      // ── Settings ─────────────────────────────────────────────────────────────
+      updateSettings: (updates) =>
+        set(s => ({ settings: { ...s.settings, ...updates } })),
+
+      // ── Cards ────────────────────────────────────────────────────────────────
+      addCard: (card) => {
+        const newCard: Card = { ...card, id: uid() };
+        set(s => ({
+          cards: [...s.cards, newCard],
+          billingCycles: [...s.billingCycles, ...makeCardCycles(newCard)],
+        }));
+      },
+      updateCard: (id, updates) =>
+        set(s => ({ cards: s.cards.map(c => (c.id === id ? { ...c, ...updates } : c)) })),
+      deleteCard: (id) =>
+        set(s => ({
+          cards: s.cards.filter(c => c.id !== id),
+          billingCycles: s.billingCycles.filter(c => c.cardId !== id),
+        })),
 
       // ── Assets ──────────────────────────────────────────────────────────────
       addAsset: (asset) =>
@@ -129,6 +197,8 @@ export const useStore = create<AppState>()(
         set(s => ({ incomes: [...s.incomes, { ...income, id: uid() }] })),
       updateIncome: (id, updates) =>
         set(s => ({ incomes: s.incomes.map(i => (i.id === id ? { ...i, ...updates } : i)) })),
+      deleteIncome: (id) =>
+        set(s => ({ incomes: s.incomes.filter(i => i.id !== id) })),
 
       // ── Expenses ─────────────────────────────────────────────────────────────
       addExpense: (expense) => {

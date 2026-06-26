@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/lib/store';
 import { Colors } from '@/constants/colors';
 import { currentMonth, isoDate, categoryLabel } from '@/lib/calculations';
+import { CalendarPicker } from '@/components/CalendarPicker';
 import type { ExpenseCategory, ExpenseType, Earner, PaymentMethod } from '@/lib/types';
 
 const CATEGORIES: ExpenseCategory[] = [
@@ -20,8 +21,6 @@ const CATEGORIES: ExpenseCategory[] = [
 ];
 // SIP and RD treated as special categories
 const INVESTMENT_CATS = ['sip', 'rd'] as const;
-
-const PAYMENT_METHODS: PaymentMethod[] = ['ICICI','HDFC','Scapia','SBI','IDFC','UPI','Cash'];
 
 const EXPENSE_TYPES: { value: ExpenseType; label: string }[] = [
   { value: 'regular', label: 'Regular' },
@@ -53,13 +52,6 @@ function Chip({
   );
 }
 
-// Adjust a date string by N days
-function shiftDate(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
-
 function displayDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00');
   const today = new Date();
@@ -86,11 +78,17 @@ export default function ExpenseEntryScreen() {
   const [expenseType, setExpenseType] = useState<ExpenseType>('regular');
   const [note, setNote] = useState(params.note ?? '');
   const [date, setDate] = useState(isoDate());
-  const [dateText, setDateText] = useState(isoDate());
-  const [editingDate, setEditingDate] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [sipAssetId, setSipAssetId] = useState<string>('');
 
   const isInvestment = category === 'sip' || category === 'rd';
+
+  // Payment methods: user's cards (incl. custom) + UPI / Cash
+  const paymentMethods: PaymentMethod[] = [
+    ...store.cards.map(c => c.name),
+    'UPI',
+    'Cash',
+  ];
 
   function handleSubmit() {
     const amt = parseFloat(amount);
@@ -203,7 +201,7 @@ export default function ExpenseEntryScreen() {
       {/* Payment Method */}
       <Text style={styles.label}>Paid Via</Text>
       <View style={styles.chipWrap}>
-        {PAYMENT_METHODS.map(m => (
+        {paymentMethods.map(m => (
           <Chip key={m} label={m} selected={card === m} onPress={() => setCard(m)} />
         ))}
       </View>
@@ -249,61 +247,19 @@ export default function ExpenseEntryScreen() {
 
       {/* Date */}
       <Text style={styles.label}>Date</Text>
-      <View style={styles.dateRow}>
-        <TouchableOpacity style={styles.dateArrow} onPress={() => { const d = shiftDate(date, -1); setDate(d); setDateText(d); }}>
-          <Ionicons name="chevron-back" size={20} color={Colors.primary} />
-        </TouchableOpacity>
+      <TouchableOpacity style={styles.dateDisplay} onPress={() => setShowCalendar(true)}>
+        <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+        <Text style={styles.dateText}>{displayDate(date)}</Text>
+        <Ionicons name="chevron-down" size={16} color={Colors.textMuted} style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
 
-        {editingDate ? (
-          <TextInput
-            style={styles.dateInput}
-            value={dateText}
-            onChangeText={setDateText}
-            onBlur={() => {
-              // Validate and apply
-              const parsed = new Date(dateText);
-              if (!isNaN(parsed.getTime())) {
-                const iso = dateText.length === 10 ? dateText : parsed.toISOString().split('T')[0];
-                setDate(iso);
-                setDateText(iso);
-              } else {
-                setDateText(date); // revert
-              }
-              setEditingDate(false);
-            }}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.textMuted}
-            autoFocus
-            keyboardType="numbers-and-punctuation"
-            returnKeyType="done"
-            onSubmitEditing={() => {
-              const parsed = new Date(dateText);
-              if (!isNaN(parsed.getTime())) {
-                const iso = dateText.length === 10 ? dateText : parsed.toISOString().split('T')[0];
-                setDate(iso);
-                setDateText(iso);
-              } else {
-                setDateText(date);
-              }
-              setEditingDate(false);
-            }}
-          />
-        ) : (
-          <TouchableOpacity style={styles.dateDisplay} onPress={() => { setDateText(date); setEditingDate(true); }}>
-            <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
-            <Text style={styles.dateText}>{displayDate(date)}</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={[styles.dateArrow, new Date(date) >= new Date(isoDate()) && styles.dateArrowDisabled]}
-          onPress={() => {
-            if (date < isoDate()) { const d = shiftDate(date, 1); setDate(d); setDateText(d); }
-          }}
-        >
-          <Ionicons name="chevron-forward" size={20} color={date < isoDate() ? Colors.primary : Colors.textMuted} />
-        </TouchableOpacity>
-      </View>
+      <CalendarPicker
+        visible={showCalendar}
+        value={date}
+        maxDate={isoDate()}
+        onSelect={setDate}
+        onClose={() => setShowCalendar(false)}
+      />
 
       {/* Note */}
       <Text style={styles.label}>Note (optional)</Text>
@@ -403,41 +359,18 @@ const styles = StyleSheet.create({
     minHeight: 72,
     textAlignVertical: 'top',
   },
-  dateRow: {
+  dateDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
     backgroundColor: Colors.surface,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    overflow: 'hidden',
-  },
-  dateArrow: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateArrowDisabled: { opacity: 0.3 },
-  dateDisplay: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   dateText: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  dateInput: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
-  },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
