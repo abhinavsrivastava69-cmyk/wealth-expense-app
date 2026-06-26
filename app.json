@@ -44,7 +44,8 @@
       "expo-font"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "baseUrl": "/wealth-expense-app"
     }
   }
 }
