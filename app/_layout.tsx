@@ -63,7 +63,7 @@ export default function RootLayout() {
   if (phase === 'onboarding') {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Onboarding
           onComplete={(email) => {
             completeOnboarding(email);
@@ -77,7 +77,7 @@ export default function RootLayout() {
   if (phase === 'set-pin') {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <PinLock
           mode="set"
           onSetPin={(p) => setPin(p)}
@@ -90,7 +90,7 @@ export default function RootLayout() {
   if (phase === 'verify-pin') {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <PinLock
           mode="verify"
           storedPin={storedPin ?? useStore.getState().pin ?? ''}
@@ -102,7 +102,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: Colors.surface },

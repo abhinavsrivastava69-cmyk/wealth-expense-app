@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
   googleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12,
     backgroundColor: '#fff',
+    borderWidth: 1, borderColor: Colors.borderLight,
     borderRadius: 14, paddingVertical: 15,
     marginTop: 18,
   },
