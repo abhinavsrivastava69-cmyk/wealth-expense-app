@@ -67,41 +67,49 @@ export function PinLock({ mode, onSuccess, onSetPin, storedPin }: Props) {
 
   const title = mode === 'verify'
     ? 'Welcome back'
-    : phase === 'enter' ? 'Set your PIN' : 'Confirm your PIN';
+    : phase === 'enter' ? 'Create a PIN' : 'Confirm your PIN';
 
   const subtitle = mode === 'verify'
-    ? 'Enter your 4-digit PIN'
-    : phase === 'enter' ? 'Choose a 4-digit PIN to protect your data'
-      : 'Enter the same PIN again';
+    ? 'Enter your PIN to unlock'
+    : phase === 'enter' ? 'Set a 4-digit PIN to secure your data'
+      : 'Re-enter your PIN to confirm';
 
   return (
     <View style={styles.root}>
+      <View style={styles.top}>
+        {/* Logo with halo */}
+        <View style={styles.haloOuter}>
+          <View style={styles.haloInner}>
+            <View style={styles.logoWrap}>
+              <Ionicons
+                name={mode === 'verify' ? 'lock-closed' : 'shield-checkmark'}
+                size={30}
+                color={Colors.primary}
+              />
+            </View>
+          </View>
+        </View>
 
-      {/* Logo */}
-      <View style={styles.logoWrap}>
-        <Text style={styles.logoSymbol}>₹</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+
+        {/* PIN dots */}
+        <View style={styles.dotsRow}>
+          {Array.from({ length: PIN_LENGTH }).map((_, i) => {
+            const filled = current.length > i;
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  filled && (dotError ? styles.dotErr : styles.dotFilled),
+                ]}
+              />
+            );
+          })}
+        </View>
+        <Text style={styles.errorMsg}>{error}</Text>
       </View>
-      <Text style={styles.appName}>Wealth & Expense</Text>
-      <Text style={styles.appOwner}>by Abhinav Srivastava</Text>
-
-      <View style={styles.divider} />
-
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-
-      {/* PIN dots */}
-      <View style={styles.dotsRow}>
-        {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              current.length > i && (dotError ? styles.dotErr : styles.dotFilled),
-            ]}
-          />
-        ))}
-      </View>
-      <Text style={styles.errorMsg}>{error}</Text>
 
       {/* Numpad */}
       <View style={styles.pad}>
@@ -111,23 +119,28 @@ export function PinLock({ mode, onSuccess, onSetPin, storedPin }: Props) {
             <Text style={styles.numText}>{n}</Text>
           </Pressable>
         ))}
-        {/* Bottom row */}
-        <View style={styles.numBtn} />
+        <View style={styles.numBtnGhost} />
         <Pressable onPress={() => press('0')}
           style={({ pressed }) => [styles.numBtn, pressed && styles.numBtnActive]}>
           <Text style={styles.numText}>0</Text>
         </Pressable>
         <Pressable onPress={del}
-          style={({ pressed }) => [styles.numBtn, pressed && styles.numBtnActive]}>
-          <Ionicons name="backspace-outline" size={24} color={Colors.textSecondary} />
+          style={({ pressed }) => [styles.numBtnGhost, pressed && styles.numBtnActive]}>
+          <Ionicons name="backspace-outline" size={26} color={Colors.textSecondary} />
         </Pressable>
       </View>
 
-      {mode === 'set' && (
-        <Pressable onPress={() => { onSetPin?.(''); onSuccess(); }} style={styles.skipBtn}>
-          <Text style={styles.skipText}>Skip for now</Text>
-        </Pressable>
-      )}
+      <View style={styles.footer}>
+        <View style={styles.secureNote}>
+          <Ionicons name="lock-closed" size={12} color={Colors.textMuted} />
+          <Text style={styles.secureText}>Your PIN stays on this device</Text>
+        </View>
+        {mode === 'set' && (
+          <Pressable onPress={() => { onSetPin?.(''); onSuccess(); }} hitSlop={8}>
+            <Text style={styles.skipText}>Skip for now</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -137,47 +150,63 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
+    justifyContent: 'space-between',
+    paddingVertical: 56,
+    paddingHorizontal: 24,
+  },
+  top: { alignItems: 'center' },
+  haloOuter: {
+    width: 104, height: 104, borderRadius: 52,
+    backgroundColor: Colors.primary + '14',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 22,
+  },
+  haloInner: {
+    width: 84, height: 84, borderRadius: 42,
+    backgroundColor: Colors.primary + '22',
+    alignItems: 'center', justifyContent: 'center',
   },
   logoWrap: {
-    width: 80, height: 80, borderRadius: 24,
-    backgroundColor: Colors.primaryDim,
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: Colors.surfaceElevated,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: Colors.primary + '60',
-    marginBottom: 14,
+    borderWidth: 1, borderColor: Colors.primary + '55',
   },
-  logoSymbol: { fontSize: 40, color: Colors.primary, fontWeight: '800' },
-  appName: { fontSize: 20, fontWeight: '800', color: Colors.textPrimary },
-  appOwner: { fontSize: 12, color: Colors.textMuted, marginTop: 3, marginBottom: 28 },
-  divider: { width: 40, height: 2, backgroundColor: Colors.border, borderRadius: 2, marginBottom: 28 },
-  title: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
-  subtitle: { fontSize: 13, color: Colors.textSecondary, marginBottom: 28, textAlign: 'center' },
-  dotsRow: { flexDirection: 'row', gap: 18, marginBottom: 10 },
+  title: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary, marginBottom: 8 },
+  subtitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 32, textAlign: 'center' },
+  dotsRow: { flexDirection: 'row', gap: 20, marginBottom: 8 },
   dot: {
-    width: 18, height: 18, borderRadius: 9,
+    width: 16, height: 16, borderRadius: 8,
     borderWidth: 2, borderColor: Colors.borderLight,
     backgroundColor: 'transparent',
   },
   dotFilled: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   dotErr: { backgroundColor: Colors.danger, borderColor: Colors.danger },
-  errorMsg: { height: 18, fontSize: 13, color: Colors.danger, fontWeight: '600', marginBottom: 22 },
+  errorMsg: { height: 20, fontSize: 13, color: Colors.danger, fontWeight: '600', marginTop: 10 },
   pad: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
-    width: 276,
+    rowGap: 18,
+    columnGap: 26,
+    width: 292,
     justifyContent: 'center',
   },
   numBtn: {
-    width: 80, height: 80,
-    borderRadius: 40,
+    width: 72, height: 72,
+    borderRadius: 36,
     backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
+  numBtnGhost: {
+    width: 72, height: 72,
+    borderRadius: 36,
+    alignItems: 'center', justifyContent: 'center',
+  },
   numBtnActive: { backgroundColor: Colors.primaryDim, borderColor: Colors.primary },
-  numText: { fontSize: 26, fontWeight: '400', color: Colors.textPrimary },
-  skipBtn: { marginTop: 28 },
-  skipText: { fontSize: 13, color: Colors.textMuted, textDecorationLine: 'underline' },
+  numText: { fontSize: 28, fontWeight: '500', color: Colors.textPrimary },
+  footer: { alignItems: 'center', gap: 16 },
+  secureNote: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  secureText: { fontSize: 12, color: Colors.textMuted },
+  skipText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600', textDecorationLine: 'underline' },
 });

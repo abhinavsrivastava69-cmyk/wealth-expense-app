@@ -13,6 +13,7 @@ export function Onboarding({ onComplete }: Props) {
   const [step, setStep] = useState<'welcome' | 'backup'>('welcome');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [focused, setFocused] = useState(false);
 
   function linkBackup() {
     const value = email.trim().toLowerCase();
@@ -25,135 +26,200 @@ export function Onboarding({ onComplete }: Props) {
 
   if (step === 'welcome') {
     return (
-      <ScrollView contentContainerStyle={styles.root}>
-        <View style={styles.logoWrap}>
-          <Text style={styles.logoSymbol}>₹</Text>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.welcomeContent}>
+        <View style={styles.welcomeTop}>
+          <View style={styles.haloOuter}>
+            <View style={styles.haloInner}>
+              <View style={styles.logoWrap}>
+                <Text style={styles.logoSymbol}>₹</Text>
+              </View>
+            </View>
+          </View>
+          <Text style={styles.appName}>Wealth & Expense</Text>
+          <Text style={styles.tagline}>Plan · Track · Grow</Text>
+
+          <Text style={styles.welcomeTitle}>Take control of{'\n'}your money</Text>
+          <Text style={styles.welcomeSub}>
+            Net worth, cards, budgets and expenses — private and on your device.
+          </Text>
         </View>
-        <Text style={styles.appName}>Wealth & Expense</Text>
-        <Text style={styles.appOwner}>Plan. Track. Grow.</Text>
-
-        <View style={styles.divider} />
-
-        <Text style={styles.title}>Welcome</Text>
-        <Text style={styles.subtitle}>
-          Track your net worth, cards, budgets and expenses — all on your device.
-        </Text>
 
         <View style={styles.featureList}>
-          <Feature icon="trending-up" text="Net worth & wealth tracking" />
-          <Feature icon="card" text="Credit card billing cycles" />
-          <Feature icon="bulb" text="On-device spending insights" />
+          <Feature icon="trending-up" title="Wealth tracking" desc="Assets, loans & net worth" />
+          <Feature icon="card" title="Card billing cycles" desc="Never miss a due date" />
+          <Feature icon="bulb" title="Smart insights" desc="On-device spending analysis" />
         </View>
 
-        <Pressable style={styles.primaryBtn} onPress={() => setStep('backup')}>
+        <Pressable style={({ pressed }) => [styles.primaryBtn, pressed && styles.btnPressed]} onPress={() => setStep('backup')}>
           <Text style={styles.primaryBtnText}>Get Started</Text>
+          <Ionicons name="arrow-forward" size={18} color="#fff" />
         </Pressable>
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.root}>
-      <View style={styles.gWrap}>
-        <Ionicons name="logo-google" size={34} color={Colors.textPrimary} />
-      </View>
-      <Text style={styles.title}>Enable backup</Text>
-      <Text style={styles.subtitle}>
-        Link your Gmail address so your data can be backed up and restored later. Your
-        information stays on this device until you back it up.
-      </Text>
-
-      <Text style={styles.label}>Gmail address</Text>
-      <TextInput
-        style={[styles.input, !!error && styles.inputError]}
-        placeholder="you@gmail.com"
-        placeholderTextColor={Colors.textMuted}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        autoCorrect={false}
-        value={email}
-        onChangeText={(t) => { setEmail(t); if (error) setError(''); }}
-      />
-      <Text style={styles.errorMsg}>{error}</Text>
-
-      <Pressable style={styles.primaryBtn} onPress={linkBackup}>
-        <Ionicons name="logo-google" size={18} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={styles.primaryBtnText}>Continue with Google</Text>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.backupContent}>
+      <Pressable style={styles.backBtn} onPress={() => setStep('welcome')} hitSlop={10}>
+        <Ionicons name="chevron-back" size={22} color={Colors.textSecondary} />
       </Pressable>
 
-      <Pressable style={styles.skipBtn} onPress={() => onComplete(null)}>
+      <View style={styles.backupTop}>
+        <View style={styles.cloudWrap}>
+          <Ionicons name="cloud-upload" size={30} color={Colors.primary} />
+        </View>
+        <Text style={styles.welcomeTitle}>Enable backup</Text>
+        <Text style={styles.welcomeSub}>
+          Link your Google account so your data can be backed up and restored. Nothing leaves
+          your device until you choose to back up.
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.label}>Gmail address</Text>
+        <View style={[styles.inputWrap, focused && styles.inputWrapFocused, !!error && styles.inputWrapError]}>
+          <Ionicons name="mail-outline" size={18} color={Colors.textMuted} />
+          <TextInput
+            style={styles.input}
+            placeholder="you@gmail.com"
+            placeholderTextColor={Colors.textMuted}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoCorrect={false}
+            value={email}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onChangeText={(t) => { setEmail(t); if (error) setError(''); }}
+          />
+        </View>
+        {!!error && <Text style={styles.errorMsg}>{error}</Text>}
+
+        <Pressable style={({ pressed }) => [styles.googleBtn, pressed && styles.btnPressed]} onPress={linkBackup}>
+          <View style={styles.gBadge}>
+            <Ionicons name="logo-google" size={16} color="#4285F4" />
+          </View>
+          <Text style={styles.googleBtnText}>Continue with Google</Text>
+        </Pressable>
+      </View>
+
+      <Pressable style={styles.skipBtn} onPress={() => onComplete(null)} hitSlop={8}>
         <Text style={styles.skipText}>Skip for now</Text>
       </Pressable>
     </ScrollView>
   );
 }
 
-function Feature({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }) {
+function Feature({ icon, title, desc }: { icon: React.ComponentProps<typeof Ionicons>['name']; title: string; desc: string }) {
   return (
     <View style={styles.featureRow}>
       <View style={styles.featureIcon}>
-        <Ionicons name={icon} size={18} color={Colors.primary} />
+        <Ionicons name={icon} size={20} color={Colors.primary} />
       </View>
-      <Text style={styles.featureText}>{text}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.featureTitle}>{title}</Text>
+        <Text style={styles.featureDesc}>{desc}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flexGrow: 1,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 28,
-  },
-  logoWrap: {
-    width: 80, height: 80, borderRadius: 24,
-    backgroundColor: Colors.primaryDim,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: Colors.primary + '60',
-    marginBottom: 14,
-  },
-  logoSymbol: { fontSize: 40, color: Colors.primary, fontWeight: '800' },
-  gWrap: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
+  scroll: { flex: 1, backgroundColor: Colors.background },
+  welcomeContent: { flexGrow: 1, padding: 28, paddingTop: 64, justifyContent: 'space-between' },
+  welcomeTop: { alignItems: 'center' },
+
+  haloOuter: {
+    width: 108, height: 108, borderRadius: 30,
+    backgroundColor: Colors.primary + '14',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 18,
   },
+  haloInner: {
+    width: 88, height: 88, borderRadius: 26,
+    backgroundColor: Colors.primary + '22',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  logoWrap: {
+    width: 64, height: 64, borderRadius: 20,
+    backgroundColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  logoSymbol: { fontSize: 34, color: '#fff', fontWeight: '800' },
   appName: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary },
-  appOwner: { fontSize: 13, color: Colors.textMuted, marginTop: 4 },
-  divider: { width: 40, height: 2, backgroundColor: Colors.border, borderRadius: 2, marginVertical: 26 },
-  title: { fontSize: 24, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 24, textAlign: 'center', lineHeight: 20, maxWidth: 320 },
-  featureList: { alignSelf: 'stretch', gap: 14, marginBottom: 34, paddingHorizontal: 8 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  tagline: { fontSize: 13, color: Colors.textMuted, marginTop: 4, letterSpacing: 0.5 },
+
+  welcomeTitle: { fontSize: 28, fontWeight: '800', color: Colors.textPrimary, marginTop: 30, textAlign: 'center', lineHeight: 34 },
+  welcomeSub: { fontSize: 14, color: Colors.textSecondary, marginTop: 12, textAlign: 'center', lineHeight: 21, maxWidth: 300 },
+
+  featureList: { gap: 12, marginVertical: 36 },
+  featureRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 16, padding: 14,
+  },
   featureIcon: {
-    width: 38, height: 38, borderRadius: 12,
+    width: 44, height: 44, borderRadius: 13,
     backgroundColor: Colors.primaryDim + '55',
     alignItems: 'center', justifyContent: 'center',
   },
-  featureText: { fontSize: 15, color: Colors.textPrimary, flex: 1 },
-  label: { alignSelf: 'flex-start', fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  input: {
-    alignSelf: 'stretch',
-    backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: Colors.border,
-    borderRadius: 12, padding: 15,
-    color: Colors.textPrimary, fontSize: 16,
-  },
-  inputError: { borderColor: Colors.danger },
-  errorMsg: { alignSelf: 'flex-start', height: 18, fontSize: 13, color: Colors.danger, fontWeight: '600', marginTop: 6, marginBottom: 14 },
+  featureTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
+  featureDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+
   primaryBtn: {
     flexDirection: 'row',
-    alignSelf: 'stretch',
     backgroundColor: Colors.primary,
-    borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', justifyContent: 'center',
-    marginTop: 6,
+    borderRadius: 16, paddingVertical: 17,
+    alignItems: 'center', justifyContent: 'center', gap: 8,
   },
+  btnPressed: { opacity: 0.85 },
   primaryBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  skipBtn: { marginTop: 20, paddingVertical: 8 },
-  skipText: { fontSize: 14, color: Colors.textMuted, textDecorationLine: 'underline' },
+
+  backupContent: { flexGrow: 1, padding: 28, paddingTop: 60 },
+  backBtn: {
+    position: 'absolute', top: 24, left: 16,
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  backupTop: { alignItems: 'center', marginBottom: 28 },
+  cloudWrap: {
+    width: 72, height: 72, borderRadius: 22,
+    backgroundColor: Colors.primaryDim + '55',
+    borderWidth: 1, borderColor: Colors.primary + '40',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 18,
+  },
+
+  card: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 20, padding: 20,
+  },
+  label: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: Colors.background,
+    borderWidth: 1.5, borderColor: Colors.border,
+    borderRadius: 13, paddingHorizontal: 14,
+  },
+  inputWrapFocused: { borderColor: Colors.primary },
+  inputWrapError: { borderColor: Colors.danger },
+  input: { flex: 1, paddingVertical: 15, color: Colors.textPrimary, fontSize: 16 },
+  errorMsg: { fontSize: 13, color: Colors.danger, fontWeight: '600', marginTop: 8 },
+
+  googleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12,
+    backgroundColor: '#fff',
+    borderRadius: 14, paddingVertical: 15,
+    marginTop: 18,
+  },
+  gBadge: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  googleBtnText: { fontSize: 15, fontWeight: '700', color: '#1F1F1F' },
+
+  skipBtn: { alignSelf: 'center', marginTop: 24, paddingVertical: 8 },
+  skipText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600', textDecorationLine: 'underline' },
 });
