@@ -13,7 +13,15 @@ function readStoredState(): { pin: string | null; onboarded: boolean } {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const raw = window.localStorage.getItem('wealth-expense-storage');
       const state = raw ? JSON.parse(raw)?.state : null;
-      return { pin: state?.pin ?? null, onboarded: !!state?.onboarded };
+      if (!state) return { pin: null, onboarded: false };
+      // Existing users (data or a PIN already set) skip the new-user onboarding.
+      const hasData =
+        (state.assets?.length ?? 0) > 0 ||
+        (state.cards?.length ?? 0) > 0 ||
+        (state.incomes?.length ?? 0) > 0 ||
+        (state.expenses?.length ?? 0) > 0 ||
+        state.pin != null;
+      return { pin: state.pin ?? null, onboarded: !!state.onboarded || hasData };
     }
   } catch {}
   return { pin: null, onboarded: false };

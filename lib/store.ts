@@ -321,6 +321,18 @@ export const useStore = create<AppState>()(
     {
       name: 'wealth-expense-storage',
       storage: createJSONStorage(() => appStorage),
+      onRehydrateStorage: () => (state) => {
+        // Existing users (data or a PIN already set) skip the new-user onboarding.
+        if (state && !state.onboarded) {
+          const hasData =
+            state.assets.length > 0 ||
+            state.cards.length > 0 ||
+            state.incomes.length > 0 ||
+            state.expenses.length > 0 ||
+            state.pin !== null;
+          if (hasData) state.completeOnboarding(state.userEmail ?? null);
+        }
+      },
     }
   )
 );
