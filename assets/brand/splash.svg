@@ -1,0 +1,31 @@
+<svg width="1284" height="2778" viewBox="0 0 1284 2778" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="460" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B7BFF"/>
+      <stop offset="0.55" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#6C63FF"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1284" height="2778" fill="#F2F5FA"/>
+  <!-- centered logo tile (460x460) -->
+  <g transform="translate(412 1159)">
+    <rect x="0" y="0" width="460" height="460" rx="104" ry="104" fill="url(#bg)"/>
+    <rect x="0" y="0" width="460" height="460" rx="104" ry="104" fill="url(#sheen)"/>
+    <g fill="none" stroke="#FFFFFF" stroke-width="78" stroke-linecap="round" stroke-linejoin="round"
+       transform="scale(0.449)">
+      <path d="M392 318 V 706"/>
+      <path d="M392 512 L 648 706"/>
+      <path d="M392 512 L 676 312"/>
+      <path d="M566 312 H 676 V 422"/>
+    </g>
+  </g>
+  <!-- wordmark -->
+  <text x="642" y="1740" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="120" font-weight="800" fill="#0F172A" letter-spacing="2">Kosh</text>
+  <text x="642" y="1812" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="40" font-weight="600" fill="#94A3B8" letter-spacing="8">PLAN · TRACK · GROW</text>
+</svg>

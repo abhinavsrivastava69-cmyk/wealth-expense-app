@@ -87,7 +87,7 @@ export default function MoreScreen() {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.appName}>Wealth & Expense</Text>
+        <Text style={styles.appName}>Kosh</Text>
         <Text style={styles.appSub}>Made & owned by Abhinav Srivastava</Text>
       </View>
 
@@ -144,7 +144,7 @@ export default function MoreScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Wealth & Expense v1.0.0</Text>
+        <Text style={styles.footerText}>Kosh v1.0.0</Text>
         <Text style={styles.footerSub}>© Abhinav Srivastava</Text>
       </View>
 

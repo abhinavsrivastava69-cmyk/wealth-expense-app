@@ -1,0 +1,9 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- transparent background; mark inset into the Android adaptive-icon safe zone (~66%) -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="78" stroke-linecap="round" stroke-linejoin="round" transform="translate(512 512) scale(0.66) translate(-512 -512)">
+    <path d="M392 318 V 706"/>
+    <path d="M392 512 L 648 706"/>
+    <path d="M392 512 L 676 312"/>
+    <path d="M566 312 H 676 V 422"/>
+  </g>
+</svg>

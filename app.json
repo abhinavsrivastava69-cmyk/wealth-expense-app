@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Wealth & Expense",
+    "name": "Kosh",
     "slug": "wealth-expense-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "wealthapp",
-    "userInterfaceStyle": "dark",
+    "scheme": "kosh",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A0E1A"
+      "backgroundColor": "#F2F5FA"
     },
     "ios": {
       "supportsTablet": false,
@@ -20,7 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0E1A"
+        "backgroundColor": "#2563EB"
       },
       "package": "com.abhinavsrivastava.wealthexpense"
     },
@@ -28,11 +28,11 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/favicon.png",
-      "name": "Wealth & Expense",
-      "shortName": "W&E",
-      "description": "Personal finance tracker — net worth, credit card cycles, budgets & guidance.",
-      "themeColor": "#0A0E1A",
-      "backgroundColor": "#0A0E1A",
+      "name": "Kosh",
+      "shortName": "Kosh",
+      "description": "Kosh — personal finance: net worth, credit card cycles, budgets & guidance.",
+      "themeColor": "#2563EB",
+      "backgroundColor": "#F2F5FA",
       "lang": "en",
       "scope": "/",
       "startUrl": "/",

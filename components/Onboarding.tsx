@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/colors';
@@ -31,11 +31,11 @@ export function Onboarding({ onComplete }: Props) {
           <View style={styles.haloOuter}>
             <View style={styles.haloInner}>
               <View style={styles.logoWrap}>
-                <Text style={styles.logoSymbol}>₹</Text>
+                <Image source={require('@/assets/icon.png')} style={styles.logoImg} />
               </View>
             </View>
           </View>
-          <Text style={styles.appName}>Wealth & Expense</Text>
+          <Text style={styles.appName}>Kosh</Text>
           <Text style={styles.tagline}>Plan · Track · Grow</Text>
 
           <Text style={styles.welcomeTitle}>Take control of{'\n'}your money</Text>
@@ -140,11 +140,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   logoWrap: {
-    width: 64, height: 64, borderRadius: 20,
-    backgroundColor: Colors.primary,
+    width: 64, height: 64, borderRadius: 20, overflow: 'hidden',
     alignItems: 'center', justifyContent: 'center',
   },
-  logoSymbol: { fontSize: 34, color: '#fff', fontWeight: '800' },
+  logoImg: { width: 64, height: 64, borderRadius: 20 },
   appName: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary },
   tagline: { fontSize: 13, color: Colors.textMuted, marginTop: 4, letterSpacing: 0.5 },
 

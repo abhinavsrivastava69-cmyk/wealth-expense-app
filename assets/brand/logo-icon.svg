@@ -1,0 +1,25 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="80" x2="900" y2="980" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B7BFF"/>
+      <stop offset="0.55" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#6C63FF"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="232" ry="232" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="232" ry="232" fill="url(#sheen)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="78" stroke-linecap="round" stroke-linejoin="round">
+    <!-- stem of the K -->
+    <path d="M392 318 V 706"/>
+    <!-- lower arm -->
+    <path d="M392 512 L 648 706"/>
+    <!-- upper arm = rising growth line -->
+    <path d="M392 512 L 676 312"/>
+    <!-- arrowhead on the growth line (points up-right) -->
+    <path d="M566 312 H 676 V 422"/>
+  </g>
+</svg>
