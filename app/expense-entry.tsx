@@ -71,6 +71,8 @@ export default function ExpenseEntryScreen() {
   // Support pre-fill via URL params (for iOS Shortcuts integration)
   const params = useLocalSearchParams<{ amount?: string; note?: string; category?: string }>();
 
+  const [entryMode, setEntryMode] = useState<'expense' | 'credit'>('expense');
+  const [creditLabel, setCreditLabel] = useState('');
   const [amount, setAmount] = useState(params.amount ?? '');
   const [category, setCategory] = useState<string>(params.category ?? 'groceries');
   const [card, setCard] = useState<PaymentMethod>('UPI');
@@ -94,6 +96,19 @@ export default function ExpenseEntryScreen() {
     const amt = parseFloat(amount);
     if (!amount || isNaN(amt) || amt <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid positive amount.');
+      return;
+    }
+
+    // Credit / money received (gift, freelance, reimbursement…)
+    if (entryMode === 'credit') {
+      store.addIncome({
+        earner: paidBy,
+        month: date.slice(0, 7),
+        amount: amt,
+        type: 'credit',
+        ...(creditLabel.trim() ? { label: creditLabel.trim() } : {}),
+      });
+      router.back();
       return;
     }
 
@@ -146,6 +161,24 @@ export default function ExpenseEntryScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      {/* Mode: Expense vs Money In (credit) */}
+      <View style={styles.modeRow}>
+        <TouchableOpacity
+          style={[styles.modeBtn, entryMode === 'expense' && styles.modeActiveOut]}
+          onPress={() => setEntryMode('expense')}
+        >
+          <Ionicons name="arrow-up-circle" size={17} color={entryMode === 'expense' ? Colors.danger : Colors.textMuted} />
+          <Text style={[styles.modeText, entryMode === 'expense' && { color: Colors.danger }]}>Expense</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeBtn, entryMode === 'credit' && styles.modeActiveIn]}
+          onPress={() => setEntryMode('credit')}
+        >
+          <Ionicons name="arrow-down-circle" size={17} color={entryMode === 'credit' ? Colors.success : Colors.textMuted} />
+          <Text style={[styles.modeText, entryMode === 'credit' && { color: Colors.success }]}>Money In</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Amount */}
       <Text style={styles.label}>Amount (₹)</Text>
       <View style={styles.amountRow}>
@@ -161,7 +194,23 @@ export default function ExpenseEntryScreen() {
         />
       </View>
 
+      {/* Credit-only: From / Reason */}
+      {entryMode === 'credit' && (
+        <>
+          <Text style={styles.label}>From / Reason</Text>
+          <TextInput
+            style={styles.noteInput}
+            placeholder="e.g. Gift from Dad, Freelance, Reimbursement"
+            placeholderTextColor={Colors.textMuted}
+            value={creditLabel}
+            onChangeText={setCreditLabel}
+          />
+        </>
+      )}
+
       {/* Category */}
+      {entryMode === 'expense' && (
+      <>
       <Text style={styles.label}>Category</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
         {CATEGORIES.map(c => (
@@ -205,9 +254,11 @@ export default function ExpenseEntryScreen() {
           <Chip key={m} label={m} selected={card === m} onPress={() => setCard(m)} />
         ))}
       </View>
+      </>
+      )}
 
-      {/* Paid By */}
-      <Text style={styles.label}>Paid By</Text>
+      {/* Paid By / Received By */}
+      <Text style={styles.label}>{entryMode === 'credit' ? 'Received By' : 'Paid By'}</Text>
       <View style={styles.row}>
         <TouchableOpacity
           style={[styles.earnerBtn, paidBy === 'Abhinav' && styles.earnerActive]}
@@ -226,7 +277,7 @@ export default function ExpenseEntryScreen() {
       </View>
 
       {/* Expense Type */}
-      {!isInvestment && (
+      {entryMode === 'expense' && !isInvestment && (
         <>
           <Text style={styles.label}>Expense Type</Text>
           <View style={styles.chipWrap}>
@@ -262,20 +313,27 @@ export default function ExpenseEntryScreen() {
       />
 
       {/* Note */}
-      <Text style={styles.label}>Note (optional)</Text>
-      <TextInput
-        style={styles.noteInput}
-        placeholder="e.g. Monthly groceries, Zomato dinner…"
-        placeholderTextColor={Colors.textMuted}
-        value={note}
-        onChangeText={setNote}
-        multiline
-      />
+      {entryMode === 'expense' && (
+        <>
+          <Text style={styles.label}>Note (optional)</Text>
+          <TextInput
+            style={styles.noteInput}
+            placeholder="e.g. Monthly groceries, Zomato dinner…"
+            placeholderTextColor={Colors.textMuted}
+            value={note}
+            onChangeText={setNote}
+            multiline
+          />
+        </>
+      )}
 
       {/* Submit */}
-      <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+      <TouchableOpacity
+        style={[styles.submitBtn, entryMode === 'credit' && { backgroundColor: Colors.success }]}
+        onPress={handleSubmit}
+      >
         <Ionicons name="checkmark-circle" size={20} color="#fff" />
-        <Text style={styles.submitText}>Log Expense</Text>
+        <Text style={styles.submitText}>{entryMode === 'credit' ? 'Log Credit' : 'Log Expense'}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -286,6 +344,22 @@ export default function ExpenseEntryScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.background },
   content: { padding: 20 },
+  modeRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  modeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modeActiveOut: { borderColor: Colors.danger, backgroundColor: Colors.danger + '1A' },
+  modeActiveIn: { borderColor: Colors.success, backgroundColor: Colors.success + '1A' },
+  modeText: { fontSize: 14, fontWeight: '700', color: Colors.textMuted },
   label: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 20 },
   amountRow: {
     flexDirection: 'row',

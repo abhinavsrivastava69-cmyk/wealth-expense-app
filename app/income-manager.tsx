@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/lib/store';
 import { Colors } from '@/constants/colors';
 import { currentMonth, monthLabel, formatINRFull } from '@/lib/calculations';
+import { confirmDelete } from '@/lib/confirm';
 import type { Earner, IncomeType } from '@/lib/types';
 
 const EARNERS: Earner[] = ['Abhinav', 'Manasvi'];
@@ -62,10 +63,7 @@ export default function IncomeManagerScreen() {
   }
 
   function handleDelete(id: string) {
-    Alert.alert('Delete Entry', 'Remove this income entry?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteIncome(id) },
-    ]);
+    confirmDelete('Delete Entry', 'Remove this income entry?', () => deleteIncome(id));
   }
 
   function typeMeta(t: IncomeType) {

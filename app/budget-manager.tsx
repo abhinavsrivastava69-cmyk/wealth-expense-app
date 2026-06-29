@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/lib/store';
 import { Colors } from '@/constants/colors';
 import { calculateBudgetDeviations, formatINR, formatINRFull, currentMonth, categoryLabel } from '@/lib/calculations';
+import { confirmDelete } from '@/lib/confirm';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import type { ExpenseCategory } from '@/lib/types';
 
@@ -19,6 +20,10 @@ export default function BudgetManagerScreen() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+
+  // Fixed-commitment name editing
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [labelValue, setLabelValue] = useState('');
 
   // Fixed-commitment add form
   const [addingFixed, setAddingFixed] = useState(false);
@@ -54,6 +59,18 @@ export default function BudgetManagerScreen() {
     setEditingId(null);
   }
 
+  function startEditLabel(id: string, current: string) {
+    setEditingLabelId(id);
+    setLabelValue(current);
+  }
+
+  function saveLabel(id: string) {
+    const v = labelValue.trim();
+    if (!v) { Alert.alert('Enter a name'); return; }
+    updateBudget(id, { label: v });
+    setEditingLabelId(null);
+  }
+
   function addMissing(category: ExpenseCategory) {
     addBudget({ category, month, budgetAmount: 5000, kind: 'variable' });
   }
@@ -76,10 +93,11 @@ export default function BudgetManagerScreen() {
   }
 
   function removeFixed(id: string, label: string) {
-    Alert.alert('Remove Commitment', `Remove "${label}" from fixed planning?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => deleteBudget(id) },
-    ]);
+    confirmDelete('Remove Commitment', `Remove "${label}" from fixed planning?`, () => deleteBudget(id));
+  }
+
+  function removeVariable(id: string, label: string) {
+    confirmDelete('Remove Budget', `Remove the ${label} budget?`, () => deleteBudget(id));
   }
 
   return (
@@ -117,12 +135,44 @@ export default function BudgetManagerScreen() {
         <Text style={styles.empty}>No fixed commitments yet. Add EMI, SIP or rent below.</Text>
       )}
       {fixedBudgets.map(b => {
-        const isEditing = editingId === b.id;
+        const isEditingAmt = editingId === b.id;
+        const isEditingLabel = editingLabelId === b.id;
         return (
           <View key={b.id} style={styles.fixedRow}>
             <View style={[styles.dot, { backgroundColor: Colors.warning }]} />
-            <Text style={styles.fixedLabel}>{b.label ?? 'Commitment'}</Text>
-            {isEditing ? (
+
+            {isEditingLabel ? (
+              <View style={[styles.editRow, { flex: 1 }]}>
+                <TextInput
+                  style={[styles.editInput, { minWidth: 120, fontSize: 15, flex: 1 }]}
+                  value={labelValue}
+                  onChangeText={setLabelValue}
+                  autoFocus
+                  selectTextOnFocus
+                  placeholder="Name"
+                  placeholderTextColor={Colors.textMuted}
+                  onSubmitEditing={() => saveLabel(b.id)}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity onPress={() => saveLabel(b.id)} style={styles.iconBtn}>
+                  <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setEditingLabelId(null)} style={styles.iconBtn}>
+                  <Ionicons name="close-circle" size={24} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.fixedLabelBtn}
+                onPress={() => startEditLabel(b.id, b.label ?? '')}
+                activeOpacity={0.6}
+              >
+                <Text style={styles.fixedLabel} numberOfLines={1}>{b.label ?? 'Commitment'}</Text>
+                <Ionicons name="create-outline" size={13} color={Colors.textMuted} style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+            )}
+
+            {!isEditingLabel && (isEditingAmt ? (
               <View style={styles.editRow}>
                 <Text style={styles.rupee}>₹</Text>
                 <TextInput
@@ -152,7 +202,7 @@ export default function BudgetManagerScreen() {
                   <Ionicons name="trash-outline" size={18} color={Colors.danger} />
                 </TouchableOpacity>
               </>
-            )}
+            ))}
           </View>
         );
       })}
@@ -241,7 +291,7 @@ export default function BudgetManagerScreen() {
                     <Text style={styles.budgetAmt}>₹{b.budgetAmount.toLocaleString('en-IN')}</Text>
                     <Ionicons name="create-outline" size={15} color={Colors.primary} style={{ marginLeft: 5 }} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => deleteBudget(b.id)} hitSlop={8} style={{ marginLeft: 10 }}>
+                  <TouchableOpacity onPress={() => removeVariable(b.id, categoryLabel(b.category))} hitSlop={8} style={{ marginLeft: 10 }}>
                     <Ionicons name="trash-outline" size={17} color={Colors.danger} />
                   </TouchableOpacity>
                 </View>
@@ -321,7 +371,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   dot: { width: 9, height: 9, borderRadius: 5, marginRight: 10 },
-  fixedLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  fixedLabelBtn: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  fixedLabel: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary, flexShrink: 1 },
   fixedAmtBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
   fixedAmt: { fontSize: 15, fontWeight: '800', color: Colors.primary },
   fixedForm: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderRadius: 14, padding: 16, marginTop: 4 },
