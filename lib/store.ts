@@ -151,6 +151,9 @@ export const useStore = create<AppState>()(
       budgets: [],
       deferredExpenses: [],
       settings: { bonusPayoutOffsetMonths: 1 },
+      onboarded: false,
+      userEmail: null,
+      completeOnboarding: (email) => set({ onboarded: true, userEmail: email }),
       pin: null,
       setPin: (pin) => set({ pin }),
 
@@ -318,12 +321,6 @@ export const useStore = create<AppState>()(
     {
       name: 'wealth-expense-storage',
       storage: createJSONStorage(() => appStorage),
-      onRehydrateStorage: () => (state) => {
-        // After hydration: seed sample data if this is a fresh install
-        if (state && state.assets.length === 0) {
-          state.seedInitialData();
-        }
-      },
     }
   )
 );

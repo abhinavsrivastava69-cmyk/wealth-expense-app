@@ -64,6 +64,61 @@ export default function DashboardScreen() {
 
   const surplusColor = snapshot.surplus >= 0 ? Colors.success : Colors.danger;
 
+  const isNewUser =
+    store.assets.length === 0 &&
+    store.liabilities.length === 0 &&
+    store.incomes.length === 0 &&
+    store.expenses.length === 0 &&
+    store.cards.length === 0 &&
+    store.budgets.length === 0;
+
+  const setupSteps: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; desc: string; route: string }[] = [
+    { icon: 'trending-up', label: 'Add your assets & loans', desc: 'Build your net worth picture', route: '/(tabs)/wealth' },
+    { icon: 'cash', label: 'Record income', desc: 'Salary, credits & gifts', route: '/income-manager' },
+    { icon: 'card', label: 'Add your cards', desc: 'Track billing cycles', route: '/cards-manager' },
+    { icon: 'pie-chart', label: 'Set budgets', desc: 'Fixed commitments & limits', route: '/budget-manager' },
+    { icon: 'add-circle', label: 'Log an expense', desc: 'Start tracking spend', route: '/expense-entry' },
+  ];
+
+  if (isNewUser) {
+    return (
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Welcome</Text>
+            <Text style={styles.subgreeting}>Let&apos;s set up your finances</Text>
+          </View>
+        </View>
+
+        <Card style={styles.heroCard}>
+          <Text style={styles.heroLabel}>Net Worth</Text>
+          <Text style={styles.heroValue}>{formatINRFull(0)}</Text>
+          <Text style={styles.emptyHint}>
+            Your dashboard is empty. Add your details below and your numbers will appear here.
+          </Text>
+        </Card>
+
+        <SectionHeader title="Get Started" />
+        {setupSteps.map((s, i) => (
+          <TouchableOpacity key={s.route} onPress={() => router.push(s.route as any)}>
+            <Card style={styles.setupRow}>
+              <View style={[styles.setupIcon, { backgroundColor: Colors.primaryDim + '55' }]}>
+                <Ionicons name={s.icon} size={20} color={Colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.setupLabel}>{`${i + 1}. ${s.label}`}</Text>
+                <Text style={styles.setupDesc}>{s.desc}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+            </Card>
+          </TouchableOpacity>
+        ))}
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -285,6 +340,11 @@ const styles = StyleSheet.create({
   },
   heroLabel: { fontSize: 13, color: Colors.textSecondary, marginBottom: 4 },
   heroValue: { fontSize: 32, fontWeight: '800', color: Colors.textPrimary, marginBottom: 16 },
+  emptyHint: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  setupRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 10 },
+  setupIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  setupLabel: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  setupDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   heroRow: { flexDirection: 'row', alignItems: 'center' },
   heroStat: { flex: 1, alignItems: 'center' },
   heroStatLabel: { fontSize: 11, color: Colors.textMuted, marginBottom: 2 },

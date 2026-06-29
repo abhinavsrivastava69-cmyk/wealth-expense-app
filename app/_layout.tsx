@@ -6,37 +6,44 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useStore } from '@/lib/store';
 import { Colors } from '@/constants/colors';
 import { PinLock } from '@/components/PinLock';
+import { Onboarding } from '@/components/Onboarding';
 
-function readStoredPin(): string | null {
+function readStoredState(): { pin: string | null; onboarded: boolean } {
   try {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const raw = window.localStorage.getItem('wealth-expense-storage');
-      return raw ? (JSON.parse(raw)?.state?.pin ?? null) : null;
+      const state = raw ? JSON.parse(raw)?.state : null;
+      return { pin: state?.pin ?? null, onboarded: !!state?.onboarded };
     }
   } catch {}
-  return null;
+  return { pin: null, onboarded: false };
 }
 
-type Phase = 'set-pin' | 'verify-pin' | 'unlocked';
+type Phase = 'onboarding' | 'set-pin' | 'verify-pin' | 'unlocked';
+
+function resolvePhase(pin: string | null, onboarded: boolean): Phase {
+  if (!onboarded) return 'onboarding';
+  // Empty string means user skipped PIN
+  if (pin === '') return 'unlocked';
+  return pin ? 'verify-pin' : 'set-pin';
+}
 
 export default function RootLayout() {
   const setPin = useStore(s => s.setPin);
-  const [storedPin] = useState<string | null>(readStoredPin);
+  const completeOnboarding = useStore(s => s.completeOnboarding);
+  const [storedPin] = useState<string | null>(() => readStoredState().pin);
 
   const [phase, setPhase] = useState<Phase>(() => {
-    const pin = readStoredPin();
-    // Empty string means user skipped PIN
-    if (pin === '') return 'unlocked';
-    return pin ? 'verify-pin' : 'set-pin';
+    const { pin, onboarded } = readStoredState();
+    return resolvePhase(pin, onboarded);
   });
 
   // Native only: wait for async storage hydration
   useEffect(() => {
     if (Platform.OS !== 'web') {
       function resolve() {
-        const p = useStore.getState().pin;
-        if (p === '') { setPhase('unlocked'); return; }
-        setPhase(p ? 'verify-pin' : 'set-pin');
+        const s = useStore.getState();
+        setPhase(resolvePhase(s.pin, s.onboarded));
       }
       if (useStore.persist.hasHydrated()) { resolve(); return; }
       const unsub = useStore.persist.onFinishHydration(resolve);
@@ -44,6 +51,20 @@ export default function RootLayout() {
       return () => { unsub(); clearTimeout(t); };
     }
   }, []);
+
+  if (phase === 'onboarding') {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="light" />
+        <Onboarding
+          onComplete={(email) => {
+            completeOnboarding(email);
+            setPhase('set-pin');
+          }}
+        />
+      </GestureHandlerRootView>
+    );
+  }
 
   if (phase === 'set-pin') {
     return (

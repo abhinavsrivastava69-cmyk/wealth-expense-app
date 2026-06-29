@@ -180,6 +180,11 @@ export interface AppState {
   deferredExpenses: DeferredExpense[];
   settings: AppSettings;
 
+  // Onboarding / backup account
+  onboarded: boolean;
+  userEmail: string | null;
+  completeOnboarding: (email: string | null) => void;
+
   // PIN security
   pin: string | null;
   setPin: (pin: string | null) => void;
